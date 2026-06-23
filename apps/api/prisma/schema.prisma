@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(BUYER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  factory        FactoryProfile?
+  rfqs           RFQ[]
+  quotes         Quote[]
+  etrs           ETRS?
+  products       Product[]
+  buyerOrders    Order[]   @relation("BuyerOrders")
+  supplierOrders Order[]   @relation("SupplierOrders")
+
+  @@map("users")
+}
+
+model FactoryProfile {
+  id                 String            @id @default(cuid())
+  userId             String            @unique
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName       String
+  description        String
+  address            String
+  lga                String
+  teamSize           Int
+  yearsOfOperation   Int
+  productCategories  String[]
+  moq                Int
+  exportReady        Boolean           @default(false)
+  phone              String
+  website            String?
+  verificationLevel  VerificationLevel @default(UNVERIFIED)
+  photos             String[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  products           Product[]
+
+  @@map("factory_profiles")
+}
+
+model RFQ {
+  id                    String    @id @default(cuid())
+  buyerId               String
+  buyer                 User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  title                 String
+  description           String
+  category              String
+  quantity              Int
+  budgetMin             Float
+  budgetMax             Float
+  deliveryLocation      String
+  deadline              DateTime
+  customizationRequired Boolean   @default(false)
+  customizationDetails  String?
+  status                RFQStatus @default(OPEN)
+  awardedQuoteId        String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  quotes                Quote[]
+
+  @@map("rfqs")
+}
+
+model Quote {
+  id           String      @id @default(cuid())
+  rfqId        String
+  rfq          RFQ         @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId   String
+  supplier     User        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  unitPrice    Float
+  totalPrice   Float
+  leadTimeDays Int
+  notes        String?
+  validUntil   DateTime
+  status       QuoteStatus @default(PENDING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([rfqId, supplierId])
+  @@map("quotes")
+}
+
+model ETRS {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score                Float    @default(0)
+  ordersCompleted      Int      @default(0)
+  deliverySuccessRate  Float    @default(0)
+  avgRating            Float    @default(0)
+  disputeCount         Int      @default(0)
+  refundRate           Float    @default(0)
+  avgResponseHours     Float    @default(0)
+  updatedAt            DateTime @updatedAt
+
+  @@map("etrs")
+}
+
+enum Role {
+  BUYER
+  SUPPLIER
+  ADMIN
+}
+
+enum VerificationLevel {
+  UNVERIFIED
+  VERIFIED_BUSINESS
+  VERIFIED_FACILITY
+  FACTORY_CERTIFIED
+  EXPORT_CERTIFIED
+}
+
+enum RFQStatus {
+  OPEN
+  REVIEWING
+  AWARDED
+  CLOSED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+// ── Direct marketplace models ──────────────────────────────────────────────────
+
+model Product {
+  id           String         @id @default(cuid())
+  supplierId   String
+  supplier     User           @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  factoryId    String
+  factory      FactoryProfile @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+  name         String
+  description  String
+  category     String
+  unitPrice    Float
+  moq          Int            @default(1)
+  unit         String         @default("pcs")
+  images       String[]
+  inStock      Boolean        @default(true)
+  leadTimeDays Int            @default(7)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  orderItems   OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  buyerId         String
+  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+  supplierId      String
+  supplier        User        @relation("SupplierOrders", fields: [supplierId], references: [id], onDelete: Cascade)
+  status          OrderStatus @default(PENDING)
+  source          OrderSource @default(DIRECT)
+  totalAmount     Float
+  deliveryAddress String
+  notes           String?
+  rfqId           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+  total     Float
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  DISPUTED
+}
+
+enum OrderSource {
+  DIRECT
+  RFQ
+}

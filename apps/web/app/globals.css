@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  /* Ekorafon green primary — Nigerian flag green */
+  --color-primary:       #008751;
+  --color-primary-dark:  #006641;
+  --color-primary-light: #00A862;
+  --color-primary-tint:  #E8F5EE;
+
+  /* Alibaba-style neutral palette */
+  --color-bg:            #F5F5F5;
+  --color-surface:       #FFFFFF;
+  --color-text:          #333333;
+  --color-text-muted:    #666666;
+  --color-text-light:    #999999;
+  --color-border:        #E8E8E8;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  /* 4px border-radius across all rounded-* utilities */
+  --radius-sm:   2px;
+  --radius:      4px;
+  --radius-md:   4px;
+  --radius-lg:   4px;
+  --radius-xl:   4px;
+  --radius-2xl:  4px;
+  --radius-3xl:  4px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: #F5F5F5;
+  color: #333333;
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  outline: 2px solid #008751;
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #F0F0F0; }
+::-webkit-scrollbar-thumb { background: #008751; border-radius: 2px; }

@@ -1,0 +1,20 @@
+{
+  "name": "ekorafon",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate"
+  },
+  "packageManager": "npm@11.12.1",
+  "devDependencies": {
+    "turbo": "^2.9.18"
+  }
+}
