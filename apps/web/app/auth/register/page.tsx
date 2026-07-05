@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { api } from "@/lib/api";
-import { saveAuth } from "@/lib/auth";
 
 type Role = "BUYER" | "SUPPLIER";
 
@@ -16,20 +15,17 @@ function RegisterForm() {
 
   const [role, setRole] = useState<Role>(defaultRole);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [error, setError] = useState("");
+  const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await api.post<{ token: string; user: { id: string; email: string; name: string; role: Role } }>(
-        "/auth/register",
-        { ...form, role }
-      );
-      saveAuth(res.token, res.user);
-      router.push(role === "SUPPLIER" ? "/dashboard/supplier" : "/dashboard/buyer");
+      await api.post("/auth/register", { ...form, role });
+      setVerified(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -37,12 +33,18 @@ function RegisterForm() {
     }
   }
 
+  useEffect(() => {
+    if (!verified) return;
+    const timer = setTimeout(() => router.push("/"), 5000);
+    return () => clearTimeout(timer);
+  }, [verified, router]);
+
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F5F5F5" }}>
 
       {/* Header */}
       <header style={{ backgroundColor: "white", borderBottom: "1px solid #E8E8E8" }}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between" style={{ height: "64px" }}>
+        <div className="px-6 flex items-center justify-between" style={{ height: "64px" }}>
           <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
             <Image src="/logo.png" alt="Ekorafon" width={44} height={44} style={{ objectFit: "contain" }} priority />
           </Link>
@@ -158,6 +160,22 @@ function RegisterForm() {
           </div>
         </div>
       </div>
+
+      {verified && (
+        <div
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", zIndex: 50 }}
+        >
+          <div style={{ width: "100%", maxWidth: "440px", backgroundColor: "white", borderRadius: "8px", padding: "40px 36px", textAlign: "center" }}>
+            <div style={{ fontSize: "52px", marginBottom: "18px" }}>📧</div>
+            <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#111", marginBottom: "10px" }}>Check your inbox</h2>
+            <p style={{ fontSize: "14px", color: "#555", lineHeight: 1.65, marginBottom: "20px" }}>
+              We sent a verification link to <strong>{form.email}</strong>.<br/>
+              Click it to activate your account. The link expires in 24 hours.
+            </p>
+            <p style={{ fontSize: "12px", color: "#999" }}>Redirecting you to the homepage…</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

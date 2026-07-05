@@ -13,16 +13,26 @@ model User {
   name         String
   passwordHash String
   role         Role     @default(BUYER)
+  suspended    Boolean  @default(false)
+  permissions  String[] @default([])
+  emailVerified     Boolean   @default(false)
+  emailVerifyToken  String?   @unique
+  emailVerifyExpiry DateTime?
+  passwordResetToken  String?   @unique
+  passwordResetExpiry DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  factory        FactoryProfile?
-  rfqs           RFQ[]
-  quotes         Quote[]
-  etrs           ETRS?
-  products       Product[]
-  buyerOrders    Order[]   @relation("BuyerOrders")
-  supplierOrders Order[]   @relation("SupplierOrders")
+  factory              FactoryProfile?
+  rfqs                 RFQ[]
+  quotes               Quote[]
+  etrs                 ETRS?
+  products             Product[]
+  buyerOrders          Order[]               @relation("BuyerOrders")
+  supplierOrders       Order[]               @relation("SupplierOrders")
+  reviewsGiven         Review[]              @relation("BuyerReviews")
+  reviewsReceived      Review[]              @relation("SupplierReviews")
+  verificationRequests VerificationRequest[]
 
   @@map("users")
 }
@@ -181,6 +191,8 @@ model Order {
   updatedAt       DateTime    @updatedAt
 
   items           OrderItem[]
+  payment         Payment?
+  review          Review?
 
   @@map("orders")
 }
@@ -211,4 +223,66 @@ enum OrderStatus {
 enum OrderSource {
   DIRECT
   RFQ
+}
+
+// ── Phase 3 models ─────────────────────────────────────────────────────────────
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String        @unique
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paystackRef  String        @unique
+  amount       Float
+  status       PaymentStatus @default(PENDING)
+  paystackData Json?
+  releasedAt   DateTime?
+  releasedBy   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  buyerId    String
+  buyer      User     @relation("BuyerReviews", fields: [buyerId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier   User     @relation("SupplierReviews", fields: [supplierId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@map("reviews")
+}
+
+model VerificationRequest {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetLevel VerificationLevel
+  documents   String[]
+  message     String?
+  status      VerifRequestStatus  @default(PENDING)
+  adminNote   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("verification_requests")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  RELEASED
+}
+
+enum VerifRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

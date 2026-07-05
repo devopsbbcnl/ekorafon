@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Nav } from "@/components/nav";
+import VerificationRequiredModal from "@/components/verification-required-modal";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -80,22 +81,22 @@ interface OpenRFQ {
   _count: { quotes: number };
 }
 
-type Tab = "overview" | "quotes" | "orders" | "products" | "rfq-board" | "earnings";
+type Tab = "overview" | "quotes" | "orders" | "products" | "rfq-board" | "earnings" | "verification";
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 
 const C = {
-  ochre:  "#C4781A",
-  forest: "#2D5016",
-  cream:  "#FAF3E8",
-  brown:  "#1A0F00",
-  terra:  "#B85C38",
-  bg:     "#F2F3F5",
+  ochre:  "#008751",
+  forest: "#008751",
+  cream:  "#E8F5EE",
+  brown:  "#333333",
+  terra:  "#006641",
+  bg:     "#F5F5F5",
   white:  "#FFFFFF",
-  border: "#E4E4E4",
-  text:   "#1A1A1A",
-  muted:  "#6B6B6B",
-  green:  "#059669",
+  border: "#E8E8E8",
+  text:   "#333333",
+  muted:  "#666666",
+  green:  "#008751",
   purple: "#7C3AED",
   cyan:   "#0891B2",
 };
@@ -678,21 +679,31 @@ function OrdersTab({ orders, onStatusUpdate }: { orders: Order[]; onStatusUpdate
 
 // ── Products Tab ───────────────────────────────────────────────────────────────
 
-function ProductsTab({ factory }: { factory: FactoryProfile | null }) {
+function ProductsTab({ factory, onRequestVerification }: { factory: FactoryProfile | null; onRequestVerification: () => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [verificationBlocked, setVerificationBlocked] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadProducts() {
     if (!factory) { setLoading(false); return; }
     api.get<Product[]>("/product/mine/list")
       .then(setProducts)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [factory]);
+  }
+
+  useEffect(() => { loadProducts(); }, [factory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function toggleStock(id: string) {
-    await api.patch(`/product/${id}/stock`, {});
-    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, inStock: !p.inStock } : p));
+    try {
+      await api.patch(`/product/${id}/stock`, {});
+      setProducts((prev) => prev.map((p) => p.id === id ? { ...p, inStock: !p.inStock } : p));
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "VERIFICATION_REQUIRED") {
+        setVerificationBlocked("change product availability");
+      }
+    }
   }
 
   if (!factory) {
@@ -703,11 +714,31 @@ function ProductsTab({ factory }: { factory: FactoryProfile | null }) {
 
   return (
     <div className="flex flex-col gap-5">
+      {showAdd && (
+        <AddProductModal
+          onClose={() => setShowAdd(false)}
+          onAdded={loadProducts}
+          onVerificationRequired={() => { setShowAdd(false); setVerificationBlocked("list products"); }}
+        />
+      )}
+      {verificationBlocked && (
+        <VerificationRequiredModal
+          action={verificationBlocked}
+          onClose={() => setVerificationBlocked(null)}
+          onGoToVerification={() => { setVerificationBlocked(null); onRequestVerification(); }}
+        />
+      )}
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold" style={{ color: C.text }}>
           {products.length} product{products.length !== 1 ? "s" : ""} in your catalogue
         </p>
-        <ComingSoonButton label="+ Add Product" />
+        <button
+          onClick={() => setShowAdd(true)}
+          className="px-4 py-1.5 rounded text-xs font-bold hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: C.forest, color: "white", border: "none", cursor: "pointer" }}
+        >
+          + Add Product
+        </button>
       </div>
 
       <div className="rounded-lg border overflow-hidden" style={{ borderColor: C.border }}>
@@ -767,11 +798,126 @@ function ProductsTab({ factory }: { factory: FactoryProfile | null }) {
   );
 }
 
-function ComingSoonButton({ label }: { label: string }) {
+function AddProductModal({ onClose, onAdded, onVerificationRequired }: { onClose: () => void; onAdded: () => void; onVerificationRequired: () => void }) {
+  const PRODUCT_CATEGORIES = [
+    "Footwear", "Leather Goods", "Garments & Textiles", "Bags & Accessories",
+    "Auto Parts", "Plastics", "Furniture", "Packaging", "Food Processing", "Building Materials",
+  ];
+
+  const [form, setForm] = useState({
+    name: "", description: "", category: PRODUCT_CATEGORIES[0],
+    unitPrice: "", moq: "", unit: "pieces", leadTimeDays: "", inStock: true,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function set(k: string, v: string | boolean) { setForm((p) => ({ ...p, [k]: v })); }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await api.post("/product", {
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        unitPrice: Number(form.unitPrice),
+        moq: Number(form.moq),
+        unit: form.unit,
+        leadTimeDays: Number(form.leadTimeDays),
+        inStock: form.inStock,
+        images: [],
+      });
+      onAdded();
+      onClose();
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "VERIFICATION_REQUIRED") {
+        onVerificationRequired();
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Failed to add product");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inp = {
+    width: "100%", padding: "9px 12px", borderRadius: "6px",
+    border: `1px solid ${C.border}`, fontSize: "13px", outline: "none",
+    backgroundColor: "white", color: C.text,
+  };
+
   return (
-    <button className="px-4 py-1.5 rounded text-xs font-bold opacity-50 cursor-not-allowed" style={{ backgroundColor: C.forest, color: "white", border: "none" }} disabled>
-      {label} (Coming Soon)
-    </button>
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+      <div className="rounded-xl w-full max-w-lg overflow-hidden" style={{ backgroundColor: "white", maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <p className="font-black text-base" style={{ color: C.text }}>Add Product to Catalogue</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: C.muted }}>×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Product Name *</label>
+            <input style={inp} required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Men's Oxford Leather Shoes" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Description *</label>
+            <textarea
+              style={{ ...inp, minHeight: "80px", resize: "vertical" } as React.CSSProperties}
+              required
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Describe the product, materials, quality, available variations..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Category *</label>
+            <select style={inp} value={form.category} onChange={(e) => set("category", e.target.value)}>
+              {PRODUCT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Unit Price (₦) *</label>
+              <input style={inp} type="number" required min={1} value={form.unitPrice} onChange={(e) => set("unitPrice", e.target.value)} placeholder="e.g. 8500" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Unit (per) *</label>
+              <input style={inp} required value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="pieces, pairs, kg, meters..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Min. Order Qty *</label>
+              <input style={inp} type="number" required min={1} value={form.moq} onChange={(e) => set("moq", e.target.value)} placeholder="e.g. 100" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: C.muted }}>Lead Time (days) *</label>
+              <input style={inp} type="number" required min={1} value={form.leadTimeDays} onChange={(e) => set("leadTimeDays", e.target.value)} placeholder="e.g. 14" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="inStock"
+              checked={form.inStock}
+              onChange={(e) => set("inStock", e.target.checked)}
+              style={{ width: "16px", height: "16px", accentColor: C.forest }}
+            />
+            <label htmlFor="inStock" className="text-sm font-semibold" style={{ color: C.text }}>Available for immediate orders (In Stock)</label>
+          </div>
+          {error && (
+            <div className="text-xs p-3 rounded-lg" style={{ backgroundColor: "#FEE2E2", color: "#B91C1C" }}>{error}</div>
+          )}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-lg font-bold text-sm border" style={{ borderColor: C.border, color: C.muted, backgroundColor: "white" }}>Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-lg font-bold text-sm disabled:opacity-50" style={{ backgroundColor: C.forest, color: "white", border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
+              {loading ? "Adding…" : "Add Product"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -915,6 +1061,269 @@ function EarningsTab({ orders }: { orders: Order[] }) {
   );
 }
 
+// ── Verification Tab ───────────────────────────────────────────────────────────
+
+interface VerifRequest {
+  id: string;
+  targetLevel: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  message?: string;
+  adminNote?: string;
+  createdAt: string;
+}
+
+const LEVEL_INFO: Record<string, { label: string; desc: string; requirements: string[] }> = {
+  VERIFIED_BUSINESS: {
+    label: "Verified Business",
+    desc: "Confirm your CAC registration and business bank account.",
+    requirements: ["Valid CAC registration certificate", "Business bank account statement (last 3 months)", "Valid government-issued ID of directors"],
+  },
+  VERIFIED_FACILITY: {
+    label: "Verified Facility",
+    desc: "Our team verifies your physical production facility in Aba.",
+    requirements: ["Proof of factory address (utility bill or lease agreement)", "Facility photos (exterior + production floor)", "Completed business registration (VERIFIED_BUSINESS required first)"],
+  },
+  FACTORY_CERTIFIED: {
+    label: "Factory Certified",
+    desc: "Full certification after production inspection and quality assessment.",
+    requirements: ["Pass facility inspection visit", "Product quality samples", "Evidence of past production runs", "VERIFIED_FACILITY required first"],
+  },
+  EXPORT_CERTIFIED: {
+    label: "Export Certified",
+    desc: "Certified for international trade and AfCFTA-compliant export.",
+    requirements: ["SON or NAFDAC certification (product-specific)", "Export license or NXP form", "Evidence of prior export transactions", "FACTORY_CERTIFIED required first"],
+  },
+};
+
+const LEVEL_ORDER = ["UNVERIFIED", "VERIFIED_BUSINESS", "VERIFIED_FACILITY", "FACTORY_CERTIFIED", "EXPORT_CERTIFIED"];
+
+function VerificationTab({ factory }: { factory: FactoryProfile | null }) {
+  const [requests, setRequests] = useState<VerifRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [targetLevel, setTargetLevel] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    api.get<VerifRequest[]>("/verification/mine")
+      .then(setRequests)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const currentLevel = factory?.verificationLevel ?? "UNVERIFIED";
+  const currentIdx = LEVEL_ORDER.indexOf(currentLevel);
+  const nextLevels = LEVEL_ORDER.slice(currentIdx + 1) as string[];
+  const hasPending = requests.some((r) => r.status === "PENDING");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!targetLevel) { setError("Select a target level"); return; }
+    setError("");
+    setSubmitting(true);
+    try {
+      await api.post("/verification/request", { targetLevel, message: message || undefined, documents: [] });
+      setSuccess(true);
+      setShowForm(false);
+      const fresh = await api.get<VerifRequest[]>("/verification/mine");
+      setRequests(fresh);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Submission failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const REQUEST_STATUS: Record<string, { bg: string; color: string; label: string }> = {
+    PENDING:  { bg: "#FEF3C7", color: "#92400E", label: "Under Review" },
+    APPROVED: { bg: "#D1FAE5", color: "#065F46", label: "Approved" },
+    REJECTED: { bg: "#FEE2E2", color: "#B91C1C", label: "Rejected" },
+  };
+
+  if (!factory) {
+    return <EmptyState icon="🏭" title="Factory profile required" body="Create your factory profile before requesting verification." cta="Create Profile" ctaHref="/dashboard/supplier/factory" />;
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+
+      {/* Current level banner */}
+      <div className="rounded-lg border p-5" style={{ backgroundColor: C.cream, borderColor: "#E2CFA0" }}>
+        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: C.ochre }}>Current Verification Level</p>
+        <div className="flex items-center gap-3">
+          {(() => {
+            const badge = VERIFICATION[currentLevel] ?? VERIFICATION.UNVERIFIED;
+            return (
+              <span className="text-sm font-bold px-3 py-1.5 rounded-lg" style={{ backgroundColor: badge.bg, color: badge.color }}>
+                {badge.label}
+              </span>
+            );
+          })()}
+          {currentLevel === "EXPORT_CERTIFIED" && (
+            <span className="text-xs" style={{ color: C.terra }}>You have achieved the highest verification tier.</span>
+          )}
+        </div>
+
+        {/* Level progression */}
+        <div className="flex items-center gap-2 mt-4 overflow-x-auto">
+          {LEVEL_ORDER.map((lvl, i) => {
+            const done = LEVEL_ORDER.indexOf(currentLevel) >= i;
+            return (
+              <div key={lvl} className="flex items-center gap-2 shrink-0">
+                {i > 0 && <div className="w-4 h-0.5" style={{ backgroundColor: done ? C.forest : C.border }} />}
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: done ? C.forest : C.border }}
+                  title={lvl.replace(/_/g, " ")}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Success flash */}
+      {success && (
+        <div className="rounded-lg border px-5 py-3" style={{ borderColor: "#86EFAC", backgroundColor: "#F0FDF4" }}>
+          <p className="text-sm font-bold" style={{ color: "#14532D" }}>✅ Verification request submitted. Our team will review within 3–5 business days.</p>
+        </div>
+      )}
+
+      {/* Request form */}
+      {!hasPending && nextLevels.length > 0 && (
+        <div className="rounded-lg border overflow-hidden" style={{ borderColor: C.border }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ backgroundColor: C.white, borderBottom: `1px solid ${C.border}` }}>
+            <p className="font-bold text-sm" style={{ color: C.text }}>Apply for Verification Upgrade</p>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="text-xs font-bold px-4 py-1.5 rounded"
+              style={{ backgroundColor: showForm ? C.border : C.forest, color: showForm ? C.muted : "white", border: "none", cursor: "pointer" }}
+            >
+              {showForm ? "Cancel" : "+ Apply Now"}
+            </button>
+          </div>
+
+          {showForm && (
+            <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-4" style={{ backgroundColor: C.white }}>
+              <div>
+                <label className="block text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: C.muted }}>Target Verification Level *</label>
+                <div className="flex flex-col gap-2">
+                  {nextLevels.map((lvl) => {
+                    const info = LEVEL_INFO[lvl];
+                    if (!info) return null;
+                    return (
+                      <label key={lvl} className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer" style={{ borderColor: targetLevel === lvl ? C.forest : C.border, backgroundColor: targetLevel === lvl ? "#F0F4F0" : "white" }}>
+                        <input type="radio" name="level" value={lvl} checked={targetLevel === lvl} onChange={() => setTargetLevel(lvl)} style={{ marginTop: "2px", accentColor: C.forest }} />
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: C.text }}>{info.label}</p>
+                          <p className="text-xs mt-0.5" style={{ color: C.muted }}>{info.desc}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {targetLevel && LEVEL_INFO[targetLevel] && (
+                <div className="rounded-lg p-4" style={{ backgroundColor: "#F8F8F8", border: `1px solid ${C.border}` }}>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>Requirements for {LEVEL_INFO[targetLevel].label}</p>
+                  <ul className="flex flex-col gap-1">
+                    {LEVEL_INFO[targetLevel].requirements.map((r) => (
+                      <li key={r} className="text-xs flex items-start gap-1.5" style={{ color: C.muted }}>
+                        <span style={{ color: C.forest, marginTop: "1px" }}>✓</span> {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: C.muted }}>Additional Notes (optional)</label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  maxLength={1000}
+                  placeholder="Tell us about your business, production capacity, certifications you hold, or any context that helps our review..."
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: `1px solid ${C.border}`, fontSize: "13px", outline: "none", minHeight: "80px", resize: "vertical", color: C.text }}
+                />
+              </div>
+
+              {error && <div className="text-xs p-3 rounded-lg" style={{ backgroundColor: "#FEE2E2", color: "#B91C1C" }}>{error}</div>}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="py-2.5 rounded-lg font-bold text-sm disabled:opacity-50"
+                style={{ backgroundColor: C.forest, color: "white", border: "none", cursor: submitting ? "not-allowed" : "pointer" }}
+              >
+                {submitting ? "Submitting…" : "Submit Verification Request"}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* Pending notice */}
+      {hasPending && (
+        <div className="rounded-lg border px-5 py-4" style={{ borderColor: "#FCD34D", backgroundColor: "#FFFBEB" }}>
+          <p className="text-sm font-bold" style={{ color: "#92400E" }}>⏳ You have a pending verification request</p>
+          <p className="text-xs mt-1" style={{ color: "#B45309" }}>Our team will review within 3–5 business days. You'll receive an email with the outcome.</p>
+        </div>
+      )}
+
+      {/* Request history */}
+      {requests.length > 0 && (
+        <SectionShell subtitle="History" title="Verification Requests">
+          {loading ? (
+            <div className="px-5 py-8 flex justify-center">
+              <div className="flex gap-1">{[0, 1, 2].map((i) => <div key={i} className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: C.forest, animationDelay: `${i * 150}ms` }} />)}</div>
+            </div>
+          ) : (
+            <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+              <thead>
+                <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
+                  {["Level Requested", "Submitted", "Status", "Admin Note"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-bold uppercase tracking-widest" style={{ color: C.muted }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((r) => {
+                  const st = REQUEST_STATUS[r.status];
+                  const info = LEVEL_INFO[r.targetLevel];
+                  return (
+                    <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td className="px-5 py-3.5 font-semibold text-sm" style={{ color: C.text }}>{info?.label ?? r.targetLevel}</td>
+                      <td className="px-5 py-3.5 text-xs" style={{ color: C.muted }}>{fmtDate(r.createdAt)}</td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: st.bg, color: st.color }}>{st.label}</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs italic" style={{ color: C.muted }}>{r.adminNote ?? "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </SectionShell>
+      )}
+
+      {/* What verification means */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Object.entries(LEVEL_INFO).map(([, info]) => (
+          <div key={info.label} className="rounded-lg border p-5" style={{ backgroundColor: C.white, borderColor: C.border }}>
+            <p className="font-bold text-sm mb-1" style={{ color: C.text }}>{info.label}</p>
+            <p className="text-xs" style={{ color: C.muted }}>{info.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SupplierDashboard() {
@@ -956,12 +1365,13 @@ export default function SupplierDashboard() {
   const badge           = factory ? (VERIFICATION[factory.verificationLevel] ?? VERIFICATION.UNVERIFIED) : null;
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
-    { key: "overview",   label: "Overview" },
-    { key: "orders",     label: "Orders",     badge: activeOrders },
-    { key: "quotes",     label: "Quotes",     badge: quotes.filter((q) => q.status === "PENDING").length },
-    { key: "products",   label: "Products" },
-    { key: "rfq-board",  label: "RFQ Board",  badge: openRFQs.length },
-    { key: "earnings",   label: "Earnings" },
+    { key: "overview",      label: "Overview" },
+    { key: "orders",        label: "Orders",      badge: activeOrders },
+    { key: "quotes",        label: "Quotes",      badge: quotes.filter((q) => q.status === "PENDING").length },
+    { key: "products",      label: "Products" },
+    { key: "rfq-board",     label: "RFQ Board",   badge: openRFQs.length },
+    { key: "earnings",      label: "Earnings" },
+    { key: "verification",  label: "Verification" },
   ];
 
   if (loading) {
@@ -983,7 +1393,7 @@ export default function SupplierDashboard() {
     <div className="min-h-screen" style={{ backgroundColor: C.bg }}>
       <Nav variant="dashboard" />
 
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+      <div className="px-4 md:px-6 py-8">
 
         {/* ── Page header ── */}
         <div className="flex items-start justify-between mb-6">
@@ -1067,12 +1477,13 @@ export default function SupplierDashboard() {
         </div>
 
         {/* ── Tab content ── */}
-        {activeTab === "overview"  && <OverviewTab factory={factory} quotes={quotes} orders={orders} openRFQs={openRFQs} onTabChange={setActiveTab} />}
-        {activeTab === "orders"    && <OrdersTab orders={orders} onStatusUpdate={loadData} />}
-        {activeTab === "quotes"    && <QuotesTab quotes={quotes} />}
-        {activeTab === "products"  && <ProductsTab factory={factory} />}
-        {activeTab === "rfq-board" && <RFQBoardTab openRFQs={openRFQs} />}
-        {activeTab === "earnings"  && <EarningsTab orders={orders} />}
+        {activeTab === "overview"      && <OverviewTab factory={factory} quotes={quotes} orders={orders} openRFQs={openRFQs} onTabChange={setActiveTab} />}
+        {activeTab === "orders"        && <OrdersTab orders={orders} onStatusUpdate={loadData} />}
+        {activeTab === "quotes"        && <QuotesTab quotes={quotes} />}
+        {activeTab === "products"      && <ProductsTab factory={factory} onRequestVerification={() => setActiveTab("verification")} />}
+        {activeTab === "rfq-board"     && <RFQBoardTab openRFQs={openRFQs} />}
+        {activeTab === "earnings"      && <EarningsTab orders={orders} />}
+        {activeTab === "verification"  && <VerificationTab factory={factory} />}
       </div>
     </div>
   );

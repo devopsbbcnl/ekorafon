@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { getUser, logout } from "@/lib/auth";
 
 interface NavProps {
-  active?: "factories" | "rfq";
+  active?: "factories" | "rfq" | "products";
   variant?: "default" | "dashboard";
   breadcrumb?: string;
 }
@@ -42,7 +42,7 @@ export function Nav({ active, variant = "default", breadcrumb }: NavProps) {
 
       {/* Tier 1: Utility bar */}
       <div style={{ backgroundColor: "#F7F7F7", borderBottom: `1px solid ${BORDER}`, height: "32px" }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center justify-between">
+        <div className="px-4 md:px-6 h-full flex items-center justify-between">
           <span style={{ fontSize: "11px", color: MUTED }}>Ship from: Nigeria, Aba</span>
           <div className="flex items-center gap-4" style={{ fontSize: "11px", color: MUTED }}>
             {!user && (
@@ -73,7 +73,7 @@ export function Nav({ active, variant = "default", breadcrumb }: NavProps) {
 
       {/* Tier 2: Main header with search */}
       <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}`, height: "64px" }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center gap-4">
+        <div className="px-4 md:px-6 h-full flex items-center gap-4">
 
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0 mr-2">
@@ -132,11 +132,11 @@ export function Nav({ active, variant = "default", breadcrumb }: NavProps) {
       {/* Tier 3: Secondary nav — default variant */}
       {variant === "default" && (
         <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}` }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center" style={{ height: "40px" }}>
+          <div className="px-4 md:px-6 flex items-center" style={{ height: "40px" }}>
             {([
               ["All Manufacturers", "/factories", "factories"],
+              ["Products", "/products", "products"],
               ["RFQ Board", "/rfq", "rfq"],
-              ["ETRS Scores", "/etrs", "etrs"],
               ["Trade Protection", "/trade", "trade"],
               ["Help Center", "/help", "help"],
             ] as [string, string, string][]).map(([label, href, key]) => (
@@ -166,7 +166,7 @@ export function Nav({ active, variant = "default", breadcrumb }: NavProps) {
       {/* Tier 3: Breadcrumb bar — dashboard variant */}
       {variant === "dashboard" && (
         <div style={{ backgroundColor: "#F7F7F7", borderBottom: `1px solid ${BORDER}` }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center" style={{ height: "36px" }}>
+          <div className="px-4 md:px-6 flex items-center" style={{ height: "36px" }}>
             <Link href="/" style={{ fontSize: "11px", color: MUTED, textDecoration: "none" }}>Home</Link>
             <span style={{ color: BORDER, margin: "0 8px", fontSize: "12px" }}>/</span>
             <Link

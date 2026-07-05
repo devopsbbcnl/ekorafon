@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import { Nav } from "@/components/nav";
+import Footer from "@/components/footer";
 import { api } from "@/lib/api";
 import { getUser } from "@/lib/auth";
 
 interface Factory {
   id: string;
+  userId: string;
   businessName: string;
   description: string;
   address: string;
@@ -36,12 +38,19 @@ interface Factory {
 }
 
 const VERIFICATION_BADGE: Record<string, { label: string; color: string; bg: string }> = {
-  UNVERIFIED:         { label: "Unverified",         color: "#6B7280", bg: "#F3F4F6" },
-  VERIFIED_BUSINESS:  { label: "Verified Business",  color: "#1D4ED8", bg: "#DBEAFE" },
-  VERIFIED_FACILITY:  { label: "Verified Facility",  color: "#6D28D9", bg: "#EDE9FE" },
-  FACTORY_CERTIFIED:  { label: "Factory Certified",  color: "#C4781A", bg: "#FEF3C7" },
-  EXPORT_CERTIFIED:   { label: "Export Certified",   color: "#2D5016", bg: "#DCFCE7" },
+  UNVERIFIED:        { label: "Unverified",        color: "#6B7280", bg: "#F3F4F6" },
+  VERIFIED_BUSINESS: { label: "Verified Business", color: "#1D4ED8", bg: "#DBEAFE" },
+  VERIFIED_FACILITY: { label: "Verified Facility", color: "#6D28D9", bg: "#EDE9FE" },
+  FACTORY_CERTIFIED: { label: "Factory Certified", color: "#6B4B10", bg: "#FEF3C7" },
+  EXPORT_CERTIFIED:  { label: "Export Certified",  color: "#064E30", bg: "#DCFCE7" },
 };
+
+const G      = "#008751";
+const GT     = "#E8F5EE";
+const BORDER = "#E8E8E8";
+const TEXT   = "#333333";
+const MUTED  = "#666666";
+const LIGHT  = "#999999";
 
 function ETRSRing({ score }: { score: number }) {
   const pct = Math.min(score / 100, 1);
@@ -49,22 +58,38 @@ function ETRSRing({ score }: { score: number }) {
   const circ = 2 * Math.PI * r;
   const dash = circ * pct;
   return (
-    <div className="flex flex-col items-center">
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <svg width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#F0E4CE" strokeWidth="6" />
+        <circle cx="40" cy="40" r={r} fill="none" stroke={BORDER} strokeWidth="6" />
         <circle
           cx="40" cy="40" r={r} fill="none"
-          stroke="#C4781A" strokeWidth="6"
+          stroke={G} strokeWidth="6"
           strokeDasharray={`${dash} ${circ}`}
           strokeLinecap="round"
           transform="rotate(-90 40 40)"
         />
-        <text x="40" y="44" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1A0F00">
+        <text x="40" y="44" textAnchor="middle" fontSize="14" fontWeight="bold" fill={TEXT}>
           {score.toFixed(0)}
         </text>
       </svg>
-      <span className="text-xs font-bold mt-1" style={{ color: "#C4781A" }}>ETRS</span>
+      <span style={{ fontSize: "10px", fontWeight: 800, marginTop: "4px", color: G, letterSpacing: "0.06em" }}>ETRS</span>
     </div>
+  );
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  buyer: { name: string };
+}
+
+function StarDisplay({ rating }: { rating: number }) {
+  return (
+    <span style={{ color: G, fontSize: "14px" }}>
+      {"★".repeat(rating)}{"☆".repeat(5 - rating)}
+    </span>
   );
 }
 
@@ -75,101 +100,113 @@ export default function FactoryDetailPage() {
   const [factory, setFactory] = useState<Factory | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  void router;
 
   useEffect(() => {
     api.get<Factory>(`/factory/${id}`)
-      .then(setFactory)
+      .then((f) => {
+        setFactory(f);
+        api.get<Review[]>(`/review/supplier/${f.userId}`)
+          .then(setReviews).catch(() => {});
+      })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FAF3E8" }}>
-        <div className="text-lg font-semibold" style={{ color: "#C4781A" }}>Loading factory...</div>
+      <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+        <Nav active="factories" />
+        <div className="flex items-center justify-center h-64">
+          <div className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: G, animationDelay: `${i * 150}ms` }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (notFound || !factory) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: "#FAF3E8" }}>
-        <div className="text-5xl">🏭</div>
-        <p className="font-bold text-xl" style={{ color: "#1A0F00" }}>Factory not found</p>
-        <Link href="/factories" style={{ color: "#C4781A" }} className="text-sm hover:underline">← Back to directory</Link>
+      <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+        <Nav active="factories" />
+        <div className="flex flex-col items-center justify-center py-20">
+          <div style={{ width: "40px", height: "40px", backgroundColor: GT, borderRadius: "4px", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontWeight: 900, fontSize: "18px", color: G }}>?</span>
+          </div>
+          <p style={{ fontWeight: 600, fontSize: "14px", color: TEXT, marginBottom: "8px" }}>Factory not found</p>
+          <Link href="/factories" style={{ color: G, textDecoration: "none", fontSize: "13px" }}>
+            ← Back to directory
+          </Link>
+        </div>
       </div>
     );
   }
 
   const badge = VERIFICATION_BADGE[factory.verificationLevel] ?? VERIFICATION_BADGE.UNVERIFIED;
   const etrs = factory.user.etrs;
+  const isVerified = factory.verificationLevel !== "UNVERIFIED";
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FAF3E8" }}>
-      <nav style={{ backgroundColor: "#1A0F00" }} className="px-6 md:px-16 py-4 flex items-center justify-between">
-        <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-          <Image src="/logo.png" alt="Ekorafon" width={40} height={40} style={{ objectFit: "contain" }} priority />
-        </Link>
-        <div className="flex gap-3">
-          <Link href="/factories" className="text-sm font-semibold hover:opacity-70 transition-opacity" style={{ color: "rgba(250,243,232,0.7)" }}>
-            ← All Factories
-          </Link>
-          {user ? (
-            <Link
-              href={`/dashboard/${user.role.toLowerCase()}`}
-              className="text-sm font-semibold px-4 py-2 rounded-lg"
-              style={{ backgroundColor: "#C4781A", color: "white" }}
-            >
-              Dashboard
-            </Link>
-          ) : (
-            <Link href="/auth/login" className="text-sm font-semibold px-4 py-2 rounded-lg border" style={{ borderColor: "#C4781A", color: "#C4781A" }}>
-              Sign In
-            </Link>
-          )}
-        </div>
-      </nav>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+      <Nav active="factories" />
 
-      {/* Hero banner */}
-      <div style={{ backgroundColor: "#1A0F00" }} className="px-6 md:px-16 py-12">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-start justify-between gap-6 flex-wrap">
+      {/* Factory page header */}
+      <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}` }}>
+        <div className="px-4 md:px-6 py-5">
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
             <div>
-              <span
-                className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3"
-                style={{ backgroundColor: badge.bg, color: badge.color }}
-              >
-                {badge.label}
-              </span>
-              <h1 className="text-4xl font-black mb-2" style={{ color: "#FAF3E8" }}>{factory.businessName}</h1>
-              <p className="text-sm" style={{ color: "rgba(250,243,232,0.6)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <Link href="/factories" style={{ fontSize: "12px", color: MUTED, textDecoration: "none" }}>All Manufacturers</Link>
+                <span style={{ color: BORDER, fontSize: "12px" }}>/</span>
+                <span style={{ fontSize: "12px", color: TEXT }}>{factory.businessName}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: "22px", fontWeight: 700, color: TEXT }}>{factory.businessName}</h1>
+                <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", backgroundColor: badge.bg, color: badge.color }}>
+                  {badge.label}
+                </span>
+              </div>
+              <p style={{ fontSize: "12px", color: MUTED, marginTop: "4px" }}>
                 {factory.lga}, Abia State · {factory.yearsOfOperation} years in operation
               </p>
             </div>
-            {etrs && <ETRSRing score={etrs.score} />}
+            {etrs && (
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <ETRSRing score={etrs.score} />
+                {isVerified && (
+                  <div style={{ width: "2px", height: "80px", backgroundColor: G, borderRadius: "2px" }} />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <div className="grid md:grid-cols-3 gap-6">
+      <div className="px-4 md:px-6 py-5">
+        <div className="grid md:grid-cols-3 gap-5">
+
           {/* Main content */}
-          <div className="md:col-span-2 flex flex-col gap-6">
+          <div className="md:col-span-2 flex flex-col gap-4">
+
             {/* About */}
-            <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-              <h2 className="font-black text-lg mb-3" style={{ color: "#1A0F00" }}>About</h2>
-              <p className="leading-relaxed" style={{ color: "rgba(26,15,0,0.7)" }}>{factory.description}</p>
+            <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+              <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "10px" }}>About</h2>
+              <p style={{ fontSize: "13px", lineHeight: 1.65, color: MUTED }}>{factory.description}</p>
             </div>
 
             {/* Product categories */}
-            <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-              <h2 className="font-black text-lg mb-3" style={{ color: "#1A0F00" }}>Product Categories</h2>
-              <div className="flex flex-wrap gap-2">
+            <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+              <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "10px" }}>Product Categories</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {factory.productCategories.map((cat) => (
                   <span
                     key={cat}
-                    className="px-3 py-2 rounded-xl text-sm font-semibold"
-                    style={{ backgroundColor: "#FAF3E8", color: "#C4781A" }}
+                    style={{ padding: "4px 10px", borderRadius: "4px", fontSize: "12px", fontWeight: 600, backgroundColor: GT, color: "#006641" }}
                   >
                     {cat}
                   </span>
@@ -179,18 +216,43 @@ export default function FactoryDetailPage() {
 
             {/* ETRS breakdown */}
             {etrs && (
-              <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-                <h2 className="font-black text-lg mb-4" style={{ color: "#1A0F00" }}>Trade Reputation Score</h2>
-                <div className="grid grid-cols-2 gap-4">
+              <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+                <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "14px" }}>Trade Reputation Score</h2>
+                <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: "Orders Completed", value: etrs.ordersCompleted },
                     { label: "Delivery Success", value: `${(etrs.deliverySuccessRate * 100).toFixed(0)}%` },
                     { label: "Average Rating", value: `${etrs.avgRating.toFixed(1)} / 5` },
                     { label: "Disputes", value: etrs.disputeCount },
                   ].map((m) => (
-                    <div key={m.label} className="rounded-xl p-4" style={{ backgroundColor: "#FAF3E8" }}>
-                      <div className="text-xl font-black" style={{ color: "#C4781A" }}>{m.value}</div>
-                      <div className="text-xs mt-1" style={{ color: "rgba(26,15,0,0.5)" }}>{m.label}</div>
+                    <div key={m.label} style={{ padding: "12px", backgroundColor: "#F5F5F5", borderRadius: "4px" }}>
+                      <div style={{ fontSize: "20px", fontWeight: 900, color: G, lineHeight: 1 }}>{m.value}</div>
+                      <div style={{ fontSize: "11px", marginTop: "4px", color: LIGHT }}>{m.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Buyer Reviews */}
+            {reviews.length > 0 && (
+              <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+                <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "14px" }}>
+                  Buyer Reviews ({reviews.length})
+                </h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {reviews.map((r) => (
+                    <div key={r.id} style={{ padding: "12px 14px", backgroundColor: "#F5F5F5", borderRadius: "4px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: TEXT }}>{r.buyer.name}</span>
+                        <StarDisplay rating={r.rating} />
+                      </div>
+                      {r.comment && (
+                        <p style={{ fontSize: "12px", fontStyle: "italic", marginTop: "4px", color: MUTED }}>&ldquo;{r.comment}&rdquo;</p>
+                      )}
+                      <p style={{ fontSize: "11px", marginTop: "6px", color: LIGHT }}>
+                        {new Date(r.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -199,53 +261,51 @@ export default function FactoryDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="flex flex-col gap-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+
             {/* Quick stats */}
-            <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-              <h3 className="font-bold mb-4" style={{ color: "#1A0F00" }}>Factory Details</h3>
-              <div className="flex flex-col gap-3 text-sm">
+            <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "18px" }}>
+              <h3 style={{ fontWeight: 700, fontSize: "13px", color: TEXT, marginBottom: "14px" }}>Factory Details</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {[
                   { label: "Team Size", value: `${factory.teamSize} staff` },
                   { label: "MOQ", value: `${factory.moq.toLocaleString()} units` },
                   { label: "Location", value: `${factory.lga}, Abia State` },
                   { label: "Address", value: factory.address },
-                  { label: "Export Ready", value: factory.exportReady ? "Yes ✓" : "No" },
+                  { label: "Export Ready", value: factory.exportReady ? "Yes" : "No" },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex flex-col gap-0.5">
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(26,15,0,0.4)" }}>{label}</span>
-                    <span style={{ color: "#1A0F00" }}>{value}</span>
+                  <div key={label}>
+                    <span style={{ display: "block", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: LIGHT, marginBottom: "2px" }}>{label}</span>
+                    <span style={{ fontSize: "12px", color: TEXT }}>{value}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Contact / CTA */}
-            <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-              <h3 className="font-bold mb-4" style={{ color: "#1A0F00" }}>Get in Touch</h3>
-              <div className="flex flex-col gap-3">
+            <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "18px" }}>
+              <h3 style={{ fontWeight: 700, fontSize: "13px", color: TEXT, marginBottom: "14px" }}>Get in Touch</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <a
                   href={`tel:${factory.phone}`}
-                  className="block w-full text-center py-3 font-bold rounded-xl text-sm transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "#C4781A", color: "white" }}
+                  style={{ display: "block", width: "100%", textAlign: "center", padding: "9px", fontWeight: 700, borderRadius: "4px", fontSize: "13px", backgroundColor: G, color: "white", textDecoration: "none" }}
                 >
-                  📞 {factory.phone}
+                  {factory.phone}
                 </a>
                 {factory.website && (
                   <a
                     href={factory.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full text-center py-3 font-bold rounded-xl text-sm border transition-opacity hover:opacity-70"
-                    style={{ borderColor: "#F0E4CE", color: "#1A0F00" }}
+                    style={{ display: "block", width: "100%", textAlign: "center", padding: "9px", fontWeight: 600, borderRadius: "4px", fontSize: "13px", border: `1px solid ${BORDER}`, color: TEXT, textDecoration: "none" }}
                   >
-                    🌐 Visit Website
+                    Visit Website
                   </a>
                 )}
                 {user?.role === "BUYER" && (
                   <Link
                     href="/dashboard/buyer/rfq/new"
-                    className="block w-full text-center py-3 font-bold rounded-xl text-sm border-2 transition-opacity hover:opacity-80"
-                    style={{ borderColor: "#C4781A", color: "#C4781A" }}
+                    style={{ display: "block", width: "100%", textAlign: "center", padding: "9px", fontWeight: 700, borderRadius: "4px", fontSize: "13px", border: `1px solid ${G}`, color: G, textDecoration: "none" }}
                   >
                     Post an RFQ
                   </Link>
@@ -253,8 +313,7 @@ export default function FactoryDetailPage() {
                 {!user && (
                   <Link
                     href="/auth/register?role=buyer"
-                    className="block w-full text-center py-3 font-bold rounded-xl text-sm border-2 transition-opacity hover:opacity-80"
-                    style={{ borderColor: "#C4781A", color: "#C4781A" }}
+                    style={{ display: "block", width: "100%", textAlign: "center", padding: "9px", fontWeight: 700, borderRadius: "4px", fontSize: "13px", border: `1px solid ${G}`, color: G, textDecoration: "none" }}
                   >
                     Sign up to Send RFQ
                   </Link>
@@ -263,12 +322,13 @@ export default function FactoryDetailPage() {
             </div>
 
             {/* Member since */}
-            <p className="text-xs text-center" style={{ color: "rgba(26,15,0,0.3)" }}>
+            <p style={{ fontSize: "11px", textAlign: "center", color: LIGHT }}>
               Member since {new Date(factory.createdAt).toLocaleDateString("en-NG", { month: "long", year: "numeric" })}
             </p>
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

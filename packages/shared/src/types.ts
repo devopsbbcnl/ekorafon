@@ -32,4 +32,5 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   name: string;
+  permissions?: string[]; // ADMIN only — empty array = super admin
 }

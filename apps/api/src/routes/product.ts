@@ -1,6 +1,7 @@
 import { Router, type RequestHandler } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, requireRole, type AuthRequest } from "../middleware/auth";
+import { requireVerifiedFactory, type FactoryRequest } from "../middleware/verifiedFactory";
 import { ProductSchema } from "@ekorafon/shared";
 
 const router = Router();
@@ -53,9 +54,8 @@ router.get("/mine/list", authenticate, requireRole("SUPPLIER"), h(async (req: Au
 }));
 
 // Supplier: create product
-router.post("/", authenticate, requireRole("SUPPLIER"), h(async (req: AuthRequest, res) => {
-  const factory = await prisma.factoryProfile.findUnique({ where: { userId: req.user!.id } });
-  if (!factory) { res.status(400).json({ error: "Complete your factory profile first" }); return; }
+router.post("/", authenticate, requireRole("SUPPLIER"), requireVerifiedFactory, h(async (req: AuthRequest, res) => {
+  const { factory } = req as FactoryRequest;
 
   const parsed = ProductSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
@@ -67,7 +67,7 @@ router.post("/", authenticate, requireRole("SUPPLIER"), h(async (req: AuthReques
 }));
 
 // Supplier: toggle in-stock
-router.patch("/:id/stock", authenticate, requireRole("SUPPLIER"), h(async (req: AuthRequest, res) => {
+router.patch("/:id/stock", authenticate, requireRole("SUPPLIER"), requireVerifiedFactory, h(async (req: AuthRequest, res) => {
   const product = await prisma.product.findUnique({ where: { id: req.params.id } });
   if (!product || product.supplierId !== req.user!.id) { res.status(404).json({ error: "Product not found" }); return; }
 

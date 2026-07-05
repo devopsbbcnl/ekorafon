@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Nav } from "@/components/nav";
+import Footer from "@/components/footer";
 
 interface Factory {
   id: string;
@@ -49,7 +50,7 @@ export default function FactoriesPage() {
     <div className="min-h-screen" style={{ backgroundColor: "#F5F5F5" }}>
       <Nav active="factories" />
 
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+      <div className="px-6 md:px-10 py-8">
 
         {/* Page header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
@@ -172,6 +173,7 @@ export default function FactoriesPage() {
           </>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

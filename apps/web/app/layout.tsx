@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: "Ekorafon — African Trade Infrastructure",
   description: "Discover manufacturers, source products, and trade with confidence across Aba and beyond.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
   openGraph: {
     title: "Ekorafon — African Trade Infrastructure",

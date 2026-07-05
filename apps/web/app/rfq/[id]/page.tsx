@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getUser } from "@/lib/auth";
+import { Nav } from "@/components/nav";
+import Footer from "@/components/footer";
+import VerificationRequiredModal from "@/components/verification-required-modal";
 
 interface Quote {
   id: string;
@@ -46,12 +48,20 @@ interface RFQDetail {
   quotes: Quote[];
 }
 
-const VERIFICATION_COLORS: Record<string, string> = {
-  UNVERIFIED:         "#9CA3AF",
-  VERIFIED_BUSINESS:  "#3B82F6",
-  VERIFIED_FACILITY:  "#8B5CF6",
-  FACTORY_CERTIFIED:  "#C4781A",
-  EXPORT_CERTIFIED:   "#2D5016",
+const G      = "#008751";
+const GD     = "#006641";
+const GT     = "#E8F5EE";
+const BORDER = "#E8E8E8";
+const TEXT   = "#333333";
+const MUTED  = "#666666";
+const LIGHT  = "#999999";
+
+const VERIFICATION_BADGE: Record<string, { label: string; color: string; bg: string }> = {
+  UNVERIFIED:        { label: "Unverified",        color: "#6B7280", bg: "#F3F4F6" },
+  VERIFIED_BUSINESS: { label: "Verified Business", color: "#1D4ED8", bg: "#DBEAFE" },
+  VERIFIED_FACILITY: { label: "Verified Facility", color: "#6D28D9", bg: "#EDE9FE" },
+  FACTORY_CERTIFIED: { label: "Factory Certified", color: "#6B4B10", bg: "#FEF3C7" },
+  EXPORT_CERTIFIED:  { label: "Export Certified",  color: "#064E30", bg: "#DCFCE7" },
 };
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
@@ -66,6 +76,7 @@ function QuoteForm({ rfqId, onSubmitted }: { rfqId: string; onSubmitted: () => v
   const [form, setForm] = useState({ unitPrice: "", totalPrice: "", leadTimeDays: "", notes: "", validUntil: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verificationBlocked, setVerificationBlocked] = useState(false);
 
   function set(f: string, v: string) { setForm((p) => ({ ...p, [f]: v })); }
 
@@ -84,46 +95,57 @@ function QuoteForm({ rfqId, onSubmitted }: { rfqId: string; onSubmitted: () => v
       });
       onSubmitted();
     } catch (err) {
+      if (err instanceof ApiError && err.code === "VERIFICATION_REQUIRED") {
+        setVerificationBlocked(true);
+        return;
+      }
       setError(err instanceof Error ? err.message : "Failed to submit quote");
     } finally {
       setLoading(false);
     }
   }
 
-  const inp = {
+  const inp: React.CSSProperties = {
     width: "100%",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    border: "1px solid #F0E4CE",
-    backgroundColor: "#FAF3E8",
-    fontSize: "14px",
+    padding: "9px 12px",
+    borderRadius: "4px",
+    border: `1px solid ${BORDER}`,
+    backgroundColor: "white",
+    fontSize: "13px",
     outline: "none",
+    color: TEXT,
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {verificationBlocked && (
+        <VerificationRequiredModal
+          action="respond to RFQs"
+          onClose={() => setVerificationBlocked(false)}
+        />
+      )}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: "rgba(26,15,0,0.5)" }}>Unit Price (₦)</label>
+          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: MUTED }}>Unit Price (₦) *</label>
           <input style={inp} type="number" required min={1} value={form.unitPrice} onChange={(e) => set("unitPrice", e.target.value)} placeholder="e.g. 2500" />
         </div>
         <div>
-          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: "rgba(26,15,0,0.5)" }}>Total Price (₦)</label>
+          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: MUTED }}>Total Price (₦) *</label>
           <input style={inp} type="number" required min={1} value={form.totalPrice} onChange={(e) => set("totalPrice", e.target.value)} placeholder="e.g. 12,500,000" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: "rgba(26,15,0,0.5)" }}>Lead Time (days)</label>
+          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: MUTED }}>Lead Time (days) *</label>
           <input style={inp} type="number" required min={1} value={form.leadTimeDays} onChange={(e) => set("leadTimeDays", e.target.value)} placeholder="e.g. 21" />
         </div>
         <div>
-          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: "rgba(26,15,0,0.5)" }}>Quote Valid Until</label>
+          <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: MUTED }}>Quote Valid Until *</label>
           <input style={inp} type="datetime-local" required value={form.validUntil} onChange={(e) => set("validUntil", e.target.value)} />
         </div>
       </div>
       <div>
-        <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: "rgba(26,15,0,0.5)" }}>Notes (optional)</label>
+        <label className="block text-xs font-bold mb-1 uppercase tracking-wider" style={{ color: MUTED }}>Notes (optional)</label>
         <textarea
           style={{ ...inp, minHeight: "80px", resize: "vertical" } as React.CSSProperties}
           value={form.notes}
@@ -132,13 +154,13 @@ function QuoteForm({ rfqId, onSubmitted }: { rfqId: string; onSubmitted: () => v
         />
       </div>
       {error && (
-        <div className="text-sm p-3 rounded-lg" style={{ backgroundColor: "#FEE2E2", color: "#B91C1C" }}>{error}</div>
+        <div className="text-xs p-3" style={{ backgroundColor: "#FEE2E2", color: "#B91C1C", borderRadius: "4px" }}>{error}</div>
       )}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 font-bold rounded-xl transition-opacity disabled:opacity-50"
-        style={{ backgroundColor: "#C4781A", color: "white" }}
+        className="w-full py-2.5 font-bold transition-opacity disabled:opacity-50"
+        style={{ backgroundColor: G, color: "white", borderRadius: "4px", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: "13px" }}
       >
         {loading ? "Submitting..." : "Submit Quote"}
       </button>
@@ -148,7 +170,6 @@ function QuoteForm({ rfqId, onSubmitted }: { rfqId: string; onSubmitted: () => v
 
 export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const user = getUser();
   const [rfq, setRFQ] = useState<RFQDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -171,7 +192,7 @@ export default function RFQDetailPage() {
       await api.patch(`/rfq/${id}/award`, { quoteId });
       load();
     } catch {
-      /* handled silently — user sees state unchanged */
+      /* state stays unchanged */
     } finally {
       setAwarding(null);
     }
@@ -184,18 +205,27 @@ export default function RFQDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FAF3E8" }}>
-        <div className="text-lg font-semibold" style={{ color: "#C4781A" }}>Loading...</div>
+      <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+        <Nav active="rfq" />
+        <div className="flex items-center justify-center h-64">
+          <div className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: G, animationDelay: `${i * 150}ms` }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (notFound || !rfq) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: "#FAF3E8" }}>
-        <div className="text-5xl">📋</div>
-        <p className="font-bold text-xl" style={{ color: "#1A0F00" }}>RFQ not found</p>
-        <Link href="/rfq" style={{ color: "#C4781A" }} className="text-sm hover:underline">← Back to RFQ Board</Link>
+      <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+        <Nav active="rfq" />
+        <div className="flex flex-col items-center justify-center py-20">
+          <p style={{ fontWeight: 600, fontSize: "14px", color: TEXT, marginBottom: "8px" }}>RFQ not found</p>
+          <Link href="/rfq" style={{ color: G, textDecoration: "none", fontSize: "13px" }}>← Back to RFQ Board</Link>
+        </div>
       </div>
     );
   }
@@ -207,140 +237,131 @@ export default function RFQDetailPage() {
   const daysLeft = Math.max(0, Math.floor((new Date(rfq.deadline).getTime() - Date.now()) / 86400000));
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FAF3E8" }}>
-      <nav style={{ backgroundColor: "#1A0F00" }} className="px-6 md:px-16 py-4 flex items-center justify-between">
-        <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-          <Image src="/logo.png" alt="Ekorafon" width={40} height={40} style={{ objectFit: "contain" }} priority />
-        </Link>
-        <div className="flex gap-3">
-          <Link href="/rfq" className="text-sm font-semibold hover:opacity-70 transition-opacity" style={{ color: "rgba(250,243,232,0.7)" }}>
-            ← RFQ Board
-          </Link>
-          {user && (
-            <Link href={`/dashboard/${user.role.toLowerCase()}`} className="text-sm font-semibold px-4 py-2 rounded-lg" style={{ backgroundColor: "#C4781A", color: "white" }}>
-              Dashboard
-            </Link>
-          )}
-        </div>
-      </nav>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5" }}>
+      <Nav active="rfq" />
 
-      {/* Hero */}
-      <div style={{ backgroundColor: "#1A0F00" }} className="px-6 md:px-16 py-10">
-        <div className="max-w-5xl mx-auto flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-bold px-2 py-1 rounded-full" style={statusStyle}>{rfq.status}</span>
-              <span className="text-xs" style={{ color: "rgba(250,243,232,0.4)" }}>{rfq.category}</span>
+      {/* Page header */}
+      <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}` }}>
+        <div className="px-4 md:px-6 py-5">
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <Link href="/rfq" style={{ fontSize: "12px", color: MUTED, textDecoration: "none" }}>RFQ Board</Link>
+                <span style={{ color: BORDER, fontSize: "12px" }}>/</span>
+                <span style={{ fontSize: "12px", color: TEXT }}>{rfq.title}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: "20px", fontWeight: 700, color: TEXT }}>{rfq.title}</h1>
+                <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", ...statusStyle }}>{rfq.status}</span>
+                <span style={{ fontSize: "11px", color: MUTED }}>{rfq.category}</span>
+              </div>
+              <p style={{ fontSize: "12px", color: MUTED, marginTop: "4px" }}>
+                Posted by {rfq.buyer.name} · {new Date(rfq.createdAt).toLocaleDateString("en-NG")}
+              </p>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black mb-2" style={{ color: "#FAF3E8" }}>{rfq.title}</h1>
-            <p className="text-sm" style={{ color: "rgba(250,243,232,0.5)" }}>
-              Posted by {rfq.buyer.name} · {new Date(rfq.createdAt).toLocaleDateString("en-NG")}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-black" style={{ color: "#C4781A" }}>{rfq.quotes.length}</div>
-            <div className="text-xs" style={{ color: "rgba(250,243,232,0.5)" }}>quotes received</div>
-            <div className="text-sm font-bold mt-1" style={{ color: daysLeft <= 2 ? "#F87171" : daysLeft <= 7 ? "#FBBF24" : "#86EFAC" }}>
-              {daysLeft} days left
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: G, lineHeight: 1 }}>{rfq.quotes.length}</div>
+              <div style={{ fontSize: "11px", color: LIGHT }}>quotes received</div>
+              <div style={{ fontSize: "12px", fontWeight: 700, marginTop: "4px", color: daysLeft <= 2 ? "#B91C1C" : daysLeft <= 7 ? "#92400E" : GD }}>
+                {daysLeft} days left
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <div className="grid md:grid-cols-3 gap-6">
+      <div className="px-4 md:px-6 py-6">
+        <div className="grid md:grid-cols-3 gap-5">
+
           {/* Main */}
-          <div className="md:col-span-2 flex flex-col gap-6">
-            {/* Details */}
-            <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-              <h2 className="font-black text-lg mb-4" style={{ color: "#1A0F00" }}>Requirements</h2>
-              <p className="leading-relaxed mb-6" style={{ color: "rgba(26,15,0,0.7)" }}>{rfq.description}</p>
+          <div className="md:col-span-2 flex flex-col gap-4">
+
+            {/* Requirements */}
+            <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+              <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "12px" }}>Requirements</h2>
+              <p style={{ fontSize: "13px", lineHeight: 1.65, color: MUTED, marginBottom: "16px" }}>{rfq.description}</p>
               {rfq.customizationRequired && rfq.customizationDetails && (
-                <div className="p-4 rounded-xl mb-4" style={{ backgroundColor: "#FEF3C7" }}>
-                  <p className="text-xs font-bold mb-1" style={{ color: "#92400E" }}>CUSTOMIZATION REQUIRED</p>
-                  <p className="text-sm" style={{ color: "#92400E" }}>{rfq.customizationDetails}</p>
+                <div style={{ padding: "12px 14px", borderRadius: "4px", marginBottom: "14px", backgroundColor: "#FEF3C7" }}>
+                  <p style={{ fontSize: "10px", fontWeight: 700, marginBottom: "4px", color: "#92400E", textTransform: "uppercase", letterSpacing: "0.06em" }}>Customization Required</p>
+                  <p style={{ fontSize: "12px", color: "#92400E" }}>{rfq.customizationDetails}</p>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Quantity", value: `${rfq.quantity.toLocaleString()} units` },
-                  { label: "Budget Range", value: `₦${rfq.budgetMin.toLocaleString()} – ₦${rfq.budgetMax.toLocaleString()}` },
+                  { label: "Quantity",         value: `${rfq.quantity.toLocaleString()} units` },
+                  { label: "Budget Range",      value: `₦${rfq.budgetMin.toLocaleString()} – ₦${rfq.budgetMax.toLocaleString()}` },
                   { label: "Delivery Location", value: rfq.deliveryLocation },
-                  { label: "Deadline", value: new Date(rfq.deadline).toLocaleDateString("en-NG", { dateStyle: "long" }) },
+                  { label: "Deadline",          value: new Date(rfq.deadline).toLocaleDateString("en-NG", { dateStyle: "long" }) },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-xl p-3" style={{ backgroundColor: "#FAF3E8" }}>
-                    <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "rgba(26,15,0,0.4)" }}>{label}</p>
-                    <p className="font-semibold text-sm" style={{ color: "#1A0F00" }}>{value}</p>
+                  <div key={label} style={{ padding: "12px", borderRadius: "4px", backgroundColor: "#F5F5F5" }}>
+                    <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "3px", color: LIGHT }}>{label}</p>
+                    <p style={{ fontSize: "13px", fontWeight: 600, color: TEXT }}>{value}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Quotes section — visible to buyer (owner) or the submitting supplier */}
+            {/* Quotes — visible to buyer or submitting supplier */}
             {(isOwner || isSupplier) && rfq.quotes.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-                <h2 className="font-black text-lg mb-4" style={{ color: "#1A0F00" }}>
+              <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+                <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "14px" }}>
                   {isOwner ? `Quotes Received (${rfq.quotes.length})` : "Your Quote"}
                 </h2>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                   {rfq.quotes
                     .filter((q) => isOwner || q.supplierId === user?.id)
                     .map((q) => {
                       const isAwarded = q.id === rfq.awardedQuoteId;
-                      const vColor = VERIFICATION_COLORS[q.supplier.factory?.verificationLevel ?? "UNVERIFIED"];
+                      const vBadge = VERIFICATION_BADGE[q.supplier.factory?.verificationLevel ?? "UNVERIFIED"];
                       return (
                         <div
                           key={q.id}
-                          className="rounded-xl p-5 border"
                           style={{
-                            borderColor: isAwarded ? "#C4781A" : "#F0E4CE",
-                            backgroundColor: isAwarded ? "#FEF3C7" : "#FAF3E8",
+                            borderRadius: "4px",
+                            padding: "16px",
+                            border: `1px solid ${isAwarded ? G : BORDER}`,
+                            backgroundColor: isAwarded ? GT : "#F5F5F5",
                           }}
                         >
                           <div className="flex items-start justify-between gap-4 mb-3">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-bold" style={{ color: "#1A0F00" }}>
+                                <span style={{ fontWeight: 600, fontSize: "13px", color: TEXT }}>
                                   {q.supplier.factory?.businessName ?? q.supplier.name}
                                 </span>
                                 {q.supplier.factory && (
-                                  <span
-                                    className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                                    style={{ backgroundColor: vColor }}
-                                  >
-                                    {q.supplier.factory.verificationLevel.replace(/_/g, " ")}
+                                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", backgroundColor: vBadge.bg, color: vBadge.color }}>
+                                    {vBadge.label}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs mt-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>
+                              <p style={{ fontSize: "11px", marginTop: "3px", color: LIGHT }}>
                                 Submitted {new Date(q.createdAt).toLocaleDateString("en-NG")}
                               </p>
                             </div>
                             {isAwarded && (
-                              <span className="text-xs font-black px-3 py-1 rounded-full" style={{ backgroundColor: "#C4781A", color: "white" }}>
+                              <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 10px", borderRadius: "4px", backgroundColor: G, color: "white" }}>
                                 AWARDED ✓
                               </span>
                             )}
                             {!isAwarded && q.status !== "PENDING" && (
-                              <span className="text-xs font-bold" style={{ color: "rgba(26,15,0,0.4)" }}>{q.status}</span>
+                              <span style={{ fontSize: "11px", color: MUTED }}>{q.status}</span>
                             )}
                           </div>
                           <div className="grid grid-cols-3 gap-3 mb-3">
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>Unit Price</p>
-                              <p className="font-bold" style={{ color: "#C4781A" }}>₦{q.unitPrice.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>Total</p>
-                              <p className="font-bold" style={{ color: "#1A0F00" }}>₦{q.totalPrice.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>Lead Time</p>
-                              <p className="font-bold" style={{ color: "#1A0F00" }}>{q.leadTimeDays} days</p>
-                            </div>
+                            {[
+                              { label: "Unit Price", value: `₦${q.unitPrice.toLocaleString()}`, accent: true },
+                              { label: "Total",      value: `₦${q.totalPrice.toLocaleString()}`, accent: false },
+                              { label: "Lead Time",  value: `${q.leadTimeDays} days`, accent: false },
+                            ].map(({ label, value, accent }) => (
+                              <div key={label}>
+                                <p style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px", color: LIGHT }}>{label}</p>
+                                <p style={{ fontWeight: 700, fontSize: "13px", color: accent ? G : TEXT }}>{value}</p>
+                              </div>
+                            ))}
                           </div>
                           {q.notes && (
-                            <p className="text-sm mb-3 p-3 rounded-lg" style={{ backgroundColor: "white", color: "rgba(26,15,0,0.6)" }}>
+                            <p style={{ fontSize: "12px", padding: "10px 12px", borderRadius: "4px", marginBottom: "10px", backgroundColor: "white", color: MUTED }}>
                               {q.notes}
                             </p>
                           )}
@@ -348,8 +369,7 @@ export default function RFQDetailPage() {
                             <button
                               onClick={() => awardQuote(q.id)}
                               disabled={awarding === q.id}
-                              className="text-sm font-bold px-4 py-2 rounded-xl transition-opacity disabled:opacity-50"
-                              style={{ backgroundColor: "#2D5016", color: "white" }}
+                              style={{ fontSize: "12px", fontWeight: 700, padding: "7px 16px", borderRadius: "4px", backgroundColor: G, color: "white", border: "none", cursor: awarding === q.id ? "not-allowed" : "pointer", opacity: awarding === q.id ? 0.6 : 1 }}
                             >
                               {awarding === q.id ? "Awarding..." : "Award Contract"}
                             </button>
@@ -363,16 +383,16 @@ export default function RFQDetailPage() {
 
             {/* Quote submission form for suppliers */}
             {isSupplier && rfq.status === "OPEN" && !hasQuoted && (
-              <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-                <h2 className="font-black text-lg mb-1" style={{ color: "#1A0F00" }}>Submit Your Quote</h2>
-                <p className="text-sm mb-4" style={{ color: "rgba(26,15,0,0.5)" }}>
+              <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px" }}>
+                <h2 style={{ fontWeight: 700, fontSize: "14px", color: TEXT, marginBottom: "4px" }}>Submit Your Quote</h2>
+                <p style={{ fontSize: "12px", color: MUTED, marginBottom: "16px" }}>
                   Your quote is visible only to the buyer. Be competitive and specific.
                 </p>
                 {quoteSubmitted ? (
-                  <div className="text-center py-6">
-                    <div className="text-4xl mb-3">✅</div>
-                    <p className="font-bold" style={{ color: "#2D5016" }}>Quote submitted successfully!</p>
-                    <p className="text-sm mt-1" style={{ color: "rgba(26,15,0,0.5)" }}>The buyer will review and respond.</p>
+                  <div style={{ textAlign: "center", padding: "24px 0" }}>
+                    <div style={{ fontSize: "32px", marginBottom: "10px" }}>✅</div>
+                    <p style={{ fontWeight: 700, color: GD, fontSize: "14px" }}>Quote submitted successfully!</p>
+                    <p style={{ fontSize: "12px", marginTop: "4px", color: MUTED }}>The buyer will review and respond.</p>
                   </div>
                 ) : (
                   <QuoteForm rfqId={rfq.id} onSubmitted={handleQuoteSubmitted} />
@@ -381,19 +401,18 @@ export default function RFQDetailPage() {
             )}
 
             {isSupplier && hasQuoted && !quoteSubmitted && (
-              <div className="bg-white rounded-2xl p-6 border text-center" style={{ borderColor: "#F0E4CE" }}>
-                <div className="text-3xl mb-2">📬</div>
-                <p className="font-bold" style={{ color: "#1A0F00" }}>You have already submitted a quote for this RFQ.</p>
+              <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px", textAlign: "center" }}>
+                <div style={{ fontSize: "28px", marginBottom: "8px" }}>📬</div>
+                <p style={{ fontWeight: 600, fontSize: "13px", color: TEXT }}>You have already submitted a quote for this RFQ.</p>
               </div>
             )}
 
             {!user && (
-              <div className="bg-white rounded-2xl p-6 border text-center" style={{ borderColor: "#F0E4CE" }}>
-                <p className="font-bold mb-3" style={{ color: "#1A0F00" }}>Sign in as a supplier to submit a quote</p>
+              <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "20px", textAlign: "center" }}>
+                <p style={{ fontWeight: 600, fontSize: "13px", color: TEXT, marginBottom: "12px" }}>Sign in as a supplier to submit a quote</p>
                 <Link
                   href="/auth/login"
-                  className="inline-block px-6 py-3 font-bold rounded-xl text-sm"
-                  style={{ backgroundColor: "#C4781A", color: "white" }}
+                  style={{ display: "inline-block", padding: "9px 20px", fontWeight: 700, borderRadius: "4px", fontSize: "13px", backgroundColor: G, color: "white", textDecoration: "none" }}
                 >
                   Sign In
                 </Link>
@@ -402,36 +421,40 @@ export default function RFQDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="flex flex-col gap-4">
-            <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: "#F0E4CE" }}>
-              <h3 className="font-bold mb-4" style={{ color: "#1A0F00" }}>Buyer Info</h3>
-              <div className="flex flex-col gap-3 text-sm">
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+
+            {/* Buyer info */}
+            <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "18px" }}>
+              <h3 style={{ fontWeight: 700, fontSize: "13px", color: TEXT, marginBottom: "14px" }}>Buyer Info</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>Name</p>
-                  <p style={{ color: "#1A0F00" }}>{rfq.buyer.name}</p>
+                  <span style={{ display: "block", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px", color: LIGHT }}>Name</span>
+                  <span style={{ fontSize: "12px", color: TEXT }}>{rfq.buyer.name}</span>
                 </div>
                 {rfq.buyer.etrs && (
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>ETRS Score</p>
-                    <p className="font-black" style={{ color: "#C4781A" }}>{rfq.buyer.etrs.score.toFixed(1)}</p>
+                    <span style={{ display: "block", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px", color: LIGHT }}>ETRS Score</span>
+                    <span style={{ fontSize: "16px", fontWeight: 900, color: G }}>{rfq.buyer.etrs.score.toFixed(1)}</span>
                   </div>
                 )}
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: "rgba(26,15,0,0.4)" }}>Submission Deadline</p>
-                  <p style={{ color: "#1A0F00" }}>{new Date(rfq.deadline).toLocaleDateString("en-NG", { dateStyle: "full" })}</p>
+                  <span style={{ display: "block", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px", color: LIGHT }}>Submission Deadline</span>
+                  <span style={{ fontSize: "12px", color: TEXT }}>{new Date(rfq.deadline).toLocaleDateString("en-NG", { dateStyle: "full" })}</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl p-4 border" style={{ backgroundColor: "#FEF3C7", borderColor: "#FDE68A" }}>
-              <p className="text-xs font-bold mb-1" style={{ color: "#92400E" }}>💡 Tip for Suppliers</p>
-              <p className="text-xs" style={{ color: "#92400E" }}>
+            {/* Tip */}
+            <div style={{ backgroundColor: GT, border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "14px" }}>
+              <p style={{ fontSize: "10px", fontWeight: 700, marginBottom: "4px", color: GD }}>Tip for Suppliers</p>
+              <p style={{ fontSize: "11px", color: GD, lineHeight: 1.5 }}>
                 Quotes with detailed notes, competitive lead times, and factory certification win more contracts.
               </p>
             </div>
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

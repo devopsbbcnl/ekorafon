@@ -32,6 +32,15 @@ interface OrderItem {
   product: { name: string; unit: string; images: string[] };
 }
 
+type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
+
+interface OrderPayment {
+  paystackRef: string;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
 interface Order {
   id: string;
   status: OrderStatus;
@@ -43,10 +52,12 @@ interface Order {
   createdAt: string;
   updatedAt: string;
   supplier: {
+    id?: string;
     name: string;
     factory: { businessName: string; verificationLevel: string } | null;
   };
   items: OrderItem[];
+  payment?: OrderPayment | null;
 }
 
 type Tab = "overview" | "sourcing" | "orders" | "suppliers" | "payments";
@@ -756,23 +767,111 @@ function OrdersTab({ orders, router }: { orders: Order[]; router: ReturnType<typ
 
 // ── Suppliers Tab ──────────────────────────────────────────────────────────────
 
-function SuppliersTab() {
+const VERIFY_COLORS: Record<string, { bg: string; color: string }> = {
+  NONE:     { bg: "#F3F4F6", color: "#6B7280" },
+  BASIC:    { bg: "#DBEAFE", color: "#1E40AF" },
+  STANDARD: { bg: "#D1FAE5", color: "#065F46" },
+  PREMIUM:  { bg: "#FEF3C7", color: "#92400E" },
+  ELITE:    { bg: "#EDE9FE", color: "#5B21B6" },
+};
+
+function SuppliersTab({ orders }: { orders: Order[] }) {
+  // Deduplicate suppliers by factory businessName or supplier name
+  const supplierMap = new Map<string, {
+    key: string; name: string; businessName: string;
+    verificationLevel: string; orderCount: number;
+    totalValue: number; lastOrderAt: string; statuses: OrderStatus[];
+  }>();
+
+  for (const o of orders) {
+    const biz = o.supplier.factory?.businessName ?? o.supplier.name;
+    if (!supplierMap.has(biz)) {
+      supplierMap.set(biz, {
+        key: biz,
+        name: o.supplier.name,
+        businessName: biz,
+        verificationLevel: o.supplier.factory?.verificationLevel ?? "NONE",
+        orderCount: 0,
+        totalValue: 0,
+        lastOrderAt: o.createdAt,
+        statuses: [],
+      });
+    }
+    const s = supplierMap.get(biz)!;
+    s.orderCount += 1;
+    s.totalValue += o.totalAmount;
+    s.statuses.push(o.status);
+    if (new Date(o.createdAt) > new Date(s.lastOrderAt)) s.lastOrderAt = o.createdAt;
+  }
+
+  const suppliers = Array.from(supplierMap.values()).sort((a, b) => b.totalValue - a.totalValue);
+
   return (
     <div className="flex flex-col gap-6">
       <SectionShell subtitle="Network" title="My Supplier Network">
-        <ComingSoon
-          title="Supplier Relationship Management"
-          body="All suppliers who have quoted your RFQs appear here. Track their performance, build your preferred vendor list, and request direct quotes."
-        />
+        {suppliers.length === 0 ? (
+          <EmptyState
+            icon="🏭"
+            title="No suppliers yet"
+            body="Once you place an order or award an RFQ quote, those suppliers will appear here."
+            cta="Browse Manufacturers"
+            ctaHref="/factories"
+          />
+        ) : (
+          <div>
+            {suppliers.map((s) => {
+              const vc = VERIFY_COLORS[s.verificationLevel] ?? VERIFY_COLORS.NONE;
+              const delivered = s.statuses.filter((st) => st === "DELIVERED").length;
+              const active    = s.statuses.filter((st) => !["DELIVERED", "CANCELLED"].includes(st)).length;
+              return (
+                <div
+                  key={s.key}
+                  className="px-5 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
+                  style={{ borderBottom: `1px solid ${C.border}` }}
+                >
+                  {/* Avatar */}
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black shrink-0"
+                    style={{ backgroundColor: C.cream, color: C.ochre }}
+                  >
+                    {s.businessName.slice(0, 2).toUpperCase()}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold truncate" style={{ color: C.text }}>{s.businessName}</p>
+                      <span
+                        className="text-xs font-bold px-2 py-0.5 rounded"
+                        style={{ backgroundColor: vc.bg, color: vc.color }}
+                      >
+                        {s.verificationLevel}
+                      </span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: C.muted }}>
+                      {s.orderCount} order{s.orderCount !== 1 ? "s" : ""}
+                      &nbsp;·&nbsp;{fmt(s.totalValue)} total
+                      {delivered > 0 && <>&nbsp;·&nbsp;<span style={{ color: C.green }}>{delivered} delivered</span></>}
+                      {active > 0 && <>&nbsp;·&nbsp;<span style={{ color: C.ochre }}>{active} active</span></>}
+                    </p>
+                  </div>
+
+                  {/* Last order */}
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold" style={{ color: C.text }}>Last order</p>
+                    <p className="text-xs" style={{ color: C.muted }}>{fmtDate(s.lastOrderAt)}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </SectionShell>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <FeatureCard icon="⭐" title="Preferred Vendors" body="Save top-performing suppliers to your shortlist for faster re-ordering and priority quoting." />
-        <FeatureCard icon="📊" title="Supplier Scorecards" body="Compare suppliers on ETRS score, on-time delivery rate, price competitiveness, and order accuracy." />
-        <FeatureCard icon="💬" title="Direct Messaging" body="Message suppliers directly within the platform — no more back-and-forth over WhatsApp or email." />
         <FeatureCard icon="📑" title="Quote Comparison" body="Side-by-side comparison of all quotes on an RFQ — price, lead time, MOQ, payment terms, and certifications." />
         <FeatureCard icon="🔄" title="Repeat Orders" body="Re-order from a previously awarded supplier in one click without posting a new RFQ." />
-        <FeatureCard icon="🏆" title="Verified Badge" body="See which suppliers carry Ekorafon's verified badge — inspected facilities, valid CAC registration, and trade history." />
+        <FeatureCard icon="💬" title="Direct Messaging" body="Message suppliers directly within the platform — no more back-and-forth over WhatsApp or email." />
       </div>
     </div>
   );
@@ -780,13 +879,31 @@ function SuppliersTab() {
 
 // ── Payments Tab ───────────────────────────────────────────────────────────────
 
-function PaymentsTab() {
+const PAYMENT_STATUS_META: Record<string, { bg: string; color: string; label: string }> = {
+  SUCCESS: { bg: "#D1FAE5", color: "#065F46", label: "Paid" },
+  PENDING: { bg: "#FEF3C7", color: "#92400E", label: "Pending" },
+  FAILED:  { bg: "#FEE2E2", color: "#B91C1C", label: "Failed" },
+  UNPAID:  { bg: "#F3F4F6", color: "#374151", label: "Unpaid" },
+};
+
+function PaymentsTab({ orders }: { orders: Order[] }) {
+  // Compute balances from order + payment data
+  const paidOrders     = orders.filter((o) => o.payment?.status === "SUCCESS");
+  const inEscrow       = paidOrders.filter((o) => !["DELIVERED", "CANCELLED"].includes(o.status));
+  const released       = paidOrders.filter((o) => o.status === "DELIVERED");
+  const unpaid         = orders.filter((o) => !o.payment || o.payment.status !== "SUCCESS");
+
+  const sum = (list: Order[]) => list.reduce((s, o) => s + o.totalAmount, 0);
+
   const balances = [
-    { icon: "💰", label: "Total Spend",       value: "₦0",    sub: "Lifetime procurement value", accent: C.forest },
-    { icon: "⏳", label: "Pending Invoices",  value: "₦0",    sub: "Awaiting your approval",     accent: C.ochre },
-    { icon: "🛡️", label: "In Escrow",         value: "₦0",    sub: "Protected, held by Ekorafon",accent: C.purple },
-    { icon: "✅", label: "Released to Suppliers", value: "₦0", sub: "Paid on confirmed delivery", accent: C.green },
+    { icon: "💰", label: "Total Spend",          value: fmt(sum(paidOrders)),  sub: "Lifetime value paid via Paystack", accent: C.forest },
+    { icon: "⏳", label: "Unpaid Orders",         value: fmt(sum(unpaid)),      sub: `${unpaid.length} order${unpaid.length !== 1 ? "s" : ""} awaiting payment`, accent: C.ochre },
+    { icon: "🛡️", label: "In Escrow",            value: fmt(sum(inEscrow)),    sub: "Held securely, pending delivery", accent: C.purple },
+    { icon: "✅", label: "Released to Suppliers", value: fmt(sum(released)),    sub: `${released.length} order${released.length !== 1 ? "s" : ""} confirmed delivered`, accent: C.green },
   ];
+
+  // Build transaction rows — one per order that has a payment or is PENDING
+  const rows = [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <div className="flex flex-col gap-6">
@@ -805,16 +922,69 @@ function PaymentsTab() {
 
       {/* Transaction history */}
       <SectionShell subtitle="Transactions" title="Payment History">
-        <ComingSoon
-          title="Paystack Escrow & Payments"
-          body="Pay for purchase orders through our Paystack-powered escrow system. Funds are held securely and only released when you confirm satisfactory delivery."
-        />
+        {rows.length === 0 ? (
+          <EmptyState
+            icon="💳"
+            title="No transactions yet"
+            body="Payment records appear here once you place your first order."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: "#FAFAFA" }}>
+                  {["Order", "Supplier", "Amount", "Order Status", "Payment", "Date"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((o) => {
+                  const payKey = o.payment?.status ?? "UNPAID";
+                  const pm = PAYMENT_STATUS_META[payKey] ?? PAYMENT_STATUS_META.UNPAID;
+                  const os = ORDER_STATUS[o.status];
+                  const supplierName = o.supplier.factory?.businessName ?? o.supplier.name;
+                  return (
+                    <tr
+                      key={o.id}
+                      className="hover:bg-gray-50 transition-colors"
+                      style={{ borderBottom: `1px solid ${C.border}` }}
+                    >
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-mono" style={{ color: C.muted }}>
+                          {o.id.slice(0, 8).toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs font-semibold" style={{ color: C.text }}>
+                        {supplierName}
+                      </td>
+                      <td className="px-5 py-3.5 text-sm font-black" style={{ color: C.text }}>
+                        {fmt(o.totalAmount)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: os.bg, color: os.color }}>
+                          {os.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: pm.bg, color: pm.color }}>
+                          {pm.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs" style={{ color: C.muted }}>
+                        {fmtDate(o.payment?.createdAt ?? o.createdAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </SectionShell>
 
       {/* Feature breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FeatureCard icon="🏦" title="Paystack Escrow" body="All payments flow through Paystack's secure escrow system. Neither party can access funds without the other's confirmation." />
-        <FeatureCard icon="📄" title="Invoice Management" body="Receive, review, and approve digital invoices from suppliers before releasing any payment from escrow." />
         <FeatureCard icon="📊" title="Spend Analytics" body="Monthly spend reports by category, supplier, and product type — with CSV export for your finance team." />
         <FeatureCard icon="🧾" title="Tax & Compliance" body="Auto-generate WHT certificates and VAT receipts for all transactions to keep your books compliant." />
       </div>
@@ -880,7 +1050,7 @@ export default function BuyerDashboard() {
     <div className="min-h-screen" style={{ backgroundColor: C.bg }}>
       <Nav variant="dashboard" />
 
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
+      <div className="px-6 md:px-10 py-8">
 
         {/* ── Page header ── */}
         <div className="flex items-start justify-between mb-6">
@@ -989,8 +1159,8 @@ export default function BuyerDashboard() {
         {activeTab === "overview"  && <OverviewTab  rfqs={rfqs} orders={orders} onTabChange={setActiveTab} />}
         {activeTab === "sourcing"  && <SourcingTab  rfqs={rfqs} router={router} />}
         {activeTab === "orders"    && <OrdersTab    orders={orders} router={router} />}
-        {activeTab === "suppliers" && <SuppliersTab />}
-        {activeTab === "payments"  && <PaymentsTab />}
+        {activeTab === "suppliers" && <SuppliersTab orders={orders} />}
+        {activeTab === "payments"  && <PaymentsTab  orders={orders} />}
       </div>
     </div>
   );

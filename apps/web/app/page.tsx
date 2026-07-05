@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getUser } from "@/lib/auth";
+import Footer from "@/components/footer";
 
 interface Factory {
   id: string;
@@ -116,7 +117,7 @@ export default function HomePage() {
 
         {/* Tier 1 — Utility bar */}
         <div style={{ backgroundColor: "#F7F7F7", borderBottom: `1px solid ${BORDER}`, height: "32px" }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center justify-between">
+          <div className="px-4 md:px-6 h-full flex items-center justify-between">
             <span style={{ fontSize: "11px", color: MUTED }}>Ship from: Nigeria, Aba</span>
             <div className="flex items-center gap-3" style={{ fontSize: "11px", color: MUTED }}>
               <Link href="/auth/register?role=supplier" style={{ color: MUTED, textDecoration: "none" }}>
@@ -142,7 +143,7 @@ export default function HomePage() {
 
         {/* Tier 2 — Main header with search */}
         <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}`, height: "64px" }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6 h-full flex items-center gap-4">
+          <div className="px-4 md:px-6 h-full flex items-center gap-4">
             <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", flexShrink: 0, marginRight: "8px" }}>
               <Image src="/logo.png" alt="Ekorafon" width={44} height={44} style={{ objectFit: "contain" }} priority />
             </Link>
@@ -190,7 +191,7 @@ export default function HomePage() {
 
         {/* Tier 3 — Category / secondary nav */}
         <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}` }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center overflow-x-auto" style={{ height: "40px", gap: 0 }}>
+          <div className="px-4 md:px-6 flex items-center overflow-x-auto" style={{ height: "40px", gap: 0 }}>
             <button
               onClick={() => setCategory("All")}
               style={{
@@ -236,7 +237,7 @@ export default function HomePage() {
         backgroundRepeat: "no-repeat",
         minHeight: "320px",
       }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex gap-5 items-start">
+        <div className="px-4 md:px-6 py-8 flex gap-5 items-start">
 
           {/* Left: headline + CTAs + live stats */}
           <div style={{ flex: 1, paddingTop: "12px", paddingBottom: "16px" }}>
@@ -304,7 +305,7 @@ export default function HomePage() {
 
       {/* ━━━━━━━━━ QUICK TOOLS ROW ━━━━━━━━━ */}
       <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}` }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="px-4 md:px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           {([
             { abbr: "RFQ", title: "Request for Quotation", desc: "Post your sourcing requirements for free", href: "/dashboard/buyer/rfq/new", tint: GT },
             { abbr: "MFG", title: "Browse Manufacturers", desc: "Explore all verified Aba factories", href: "/factories", tint: "#E8F4FF" },
@@ -329,7 +330,7 @@ export default function HomePage() {
 
       {/* ━━━━━━━━━ CATEGORY GRID ━━━━━━━━━ */}
       <div style={{ backgroundColor: "white", marginTop: "8px", borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-5">
+        <div className="px-4 md:px-6 py-5">
           <div className="flex items-center justify-between mb-4">
             <h2 style={{ fontSize: "15px", fontWeight: 700, color: TEXT }}>Browse by Category</h2>
             <Link href="/factories" style={{ fontSize: "12px", color: G, textDecoration: "none", fontWeight: 600 }}>
@@ -371,7 +372,7 @@ export default function HomePage() {
 
       {/* ━━━━━━━━━ TRUST SIGNALS ━━━━━━━━━ */}
       <div style={{ backgroundColor: "white", borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, marginTop: "8px" }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 grid grid-cols-2 md:grid-cols-4">
+        <div className="px-4 md:px-6 py-4 grid grid-cols-2 md:grid-cols-4">
           {([
             { abbr: "VRF", title: "Verified Manufacturers", desc: "Every factory goes through a vetting process" },
             { abbr: "ETRS", title: "Reputation Scoring", desc: "Trade reputation score on every profile" },
@@ -400,7 +401,7 @@ export default function HomePage() {
       {/* ━━━━━━━━━ OPEN RFQs ━━━━━━━━━ */}
       {rfqs.length > 0 && (
         <div style={{ backgroundColor: "#F5F5F5", padding: "20px 0", marginTop: "8px" }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="px-4 md:px-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 style={{ fontSize: "15px", fontWeight: 700, color: TEXT }}>Open Sourcing Requests</h2>
@@ -444,7 +445,7 @@ export default function HomePage() {
 
       {/* ━━━━━━━━━ FACTORY GRID ━━━━━━━━━ */}
       <div style={{ backgroundColor: "white", marginTop: "8px", borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-5">
+        <div className="px-4 md:px-6 py-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 style={{ fontSize: "15px", fontWeight: 700, color: TEXT }}>
@@ -541,7 +542,7 @@ export default function HomePage() {
       {/* ━━━━━━━━━ SUPPLIER CTA ━━━━━━━━━ */}
       {!user && (
         <div style={{ backgroundColor: G, marginTop: "8px" }}>
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+          <div className="px-4 md:px-6 py-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div>
               <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.6)", marginBottom: "10px" }}>
                 FOR MANUFACTURERS
@@ -579,52 +580,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ━━━━━━━━━ FOOTER ━━━━━━━━━ */}
-      <footer style={{ backgroundColor: "#1A1A1A" }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-            <div className="md:col-span-2">
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "16px 24px",
-                borderRadius: "16px",
-                background: "rgba(255,255,255,0.75)",
-                border: "1px solid rgba(255,255,255,0.85)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)",
-              }}>
-                <Image src="/logo3.png" alt="Ekorafon" width={200} height={100} style={{ objectFit: "contain" }} />
-              </div>
-              <p style={{ fontSize: "13px", marginTop: "16px", lineHeight: 1.7, color: "rgba(255,255,255,0.4)", maxWidth: "300px" }}>
-                Nigeria&rsquo;s B2B trade infrastructure platform for African manufacturers &mdash; built for global scale, starting from Aba, Abia State.
-              </p>
-            </div>
-            <div>
-              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.25)", marginBottom: "16px" }}>MARKETPLACE</p>
-              {([["Manufacturers", "/factories"], ["RFQ Board", "/rfq"], ["Post a Request", "/auth/register?role=buyer"], ["List Your Factory", "/auth/register?role=supplier"]] as [string, string][]).map(([l, h]) => (
-                <Link key={l} href={h} style={{ display: "block", fontSize: "13px", color: "rgba(255,255,255,0.45)", textDecoration: "none", marginBottom: "10px" }}>{l}</Link>
-              ))}
-            </div>
-            <div>
-              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.25)", marginBottom: "16px" }}>PLATFORM</p>
-              {([["About ETRS", "/etrs"], ["Privacy Policy", "/privacy"], ["Terms of Use", "/terms"]] as [string, string][]).map(([l, h]) => (
-                <Link key={l} href={h} style={{ display: "block", fontSize: "13px", color: "rgba(255,255,255,0.45)", textDecoration: "none", marginBottom: "10px" }}>{l}</Link>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3" style={{ paddingTop: "20px" }}>
-            <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.2)" }}>
-              &copy; 2026 Ekorafon Limited &middot; Aba, Abia State, Nigeria
-            </span>
-            <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.15)" }}>
-              Powering African trade infrastructure
-            </span>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
