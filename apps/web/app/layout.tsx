@@ -4,24 +4,60 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
+const SITE_URL = "https://ekorafon.com";
+
 export const metadata: Metadata = {
-  title: "Ekorafon — African Trade Infrastructure",
-  description: "Discover manufacturers, source products, and trade with confidence across Aba and beyond.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Ekorafon — Verified Manufacturers & B2B Sourcing in Aba, Nigeria",
+    template: "%s | Ekorafon",
+  },
+  description:
+    "Nigeria's B2B sourcing marketplace. Find verified manufacturers in Aba for wholesale shoes, garments, leather goods & more. Post a free RFQ and get direct factory quotes.",
+  keywords: [
+    "Aba manufacturers",
+    "made in Aba",
+    "Nigeria B2B marketplace",
+    "wholesale suppliers Nigeria",
+    "verified manufacturers Nigeria",
+    "African sourcing platform",
+    "buy wholesale from Aba",
+    "Nigerian factories",
+    "RFQ Nigeria",
+    "made in Nigeria products",
+  ],
+  applicationName: "Ekorafon",
+  authors: [{ name: "Ekorafon" }],
+  creator: "Ekorafon Limited",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: "/icon.png",
     shortcut: "/icon.png",
     apple: "/icon.png",
   },
   openGraph: {
-    title: "Ekorafon — African Trade Infrastructure",
-    description: "Discover manufacturers, source products, and trade with confidence across Aba and beyond.",
-    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Ekorafon" }],
+    siteName: "Ekorafon",
+    locale: "en_NG",
     type: "website",
+    title: "Ekorafon — Verified Manufacturers & B2B Sourcing in Aba, Nigeria",
+    description:
+      "Discover verified African factories, post free RFQs, and trade with confidence. Wholesale sourcing from Aba, Nigeria — no middlemen.",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Ekorafon" }],
   },
   twitter: {
-    card: "summary",
-    title: "Ekorafon — African Trade Infrastructure",
-    description: "Discover manufacturers, source products, and trade with confidence across Aba and beyond.",
+    card: "summary_large_image",
+    title: "Ekorafon — Verified Manufacturers & B2B Sourcing in Aba, Nigeria",
+    description:
+      "Discover verified African factories, post free RFQs, and trade with confidence. Wholesale sourcing from Aba, Nigeria — no middlemen.",
     images: ["/logo.png"],
   },
 };

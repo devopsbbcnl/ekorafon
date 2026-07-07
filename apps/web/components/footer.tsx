@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CATEGORY_PAGES } from "@/lib/categories";
 
 export default function Footer() {
   return (
     <footer style={{ backgroundColor: "#1A1A1A" }}>
       <div className="px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 pb-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="md:col-span-2">
             <div style={{
               display: "inline-flex",
@@ -29,6 +30,14 @@ export default function Footer() {
             <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.25)", marginBottom: "16px" }}>MARKETPLACE</p>
             {([["Manufacturers", "/factories"], ["RFQ Board", "/rfq"], ["Post a Request", "/auth/register?role=buyer"], ["List Your Factory", "/auth/register?role=supplier"]] as [string, string][]).map(([l, h]) => (
               <Link key={l} href={h} style={{ display: "block", fontSize: "13px", color: "rgba(255,255,255,0.45)", textDecoration: "none", marginBottom: "10px" }}>{l}</Link>
+            ))}
+          </div>
+          <div>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.25)", marginBottom: "16px" }}>CATEGORIES</p>
+            {CATEGORY_PAGES.map((c) => (
+              <Link key={c.slug} href={`/manufacturers/${c.slug}`} style={{ display: "block", fontSize: "13px", color: "rgba(255,255,255,0.45)", textDecoration: "none", marginBottom: "10px" }}>
+                {c.name}
+              </Link>
             ))}
           </div>
           <div>
