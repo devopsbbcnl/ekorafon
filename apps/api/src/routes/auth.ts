@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { prisma } from "../lib/prisma";
 import { signToken } from "../lib/jwt";
 import { RegisterSchema, LoginSchema } from "@ekorafon/shared";
+import { authenticate, type AuthRequest } from "../middleware/auth";
 import {
   emailVerifyAddress,
   emailWelcomeBuyer,
@@ -218,6 +219,40 @@ router.get("/me", async (req, res) => {
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }
+});
+
+// ── Update profile ────────────────────────────────────────────────────────────
+
+router.patch("/me", authenticate, async (req: AuthRequest, res) => {
+  const { name } = req.body as { name?: string };
+  const trimmed = name?.trim();
+  if (!trimmed) { res.status(400).json({ error: "Name is required" }); return; }
+
+  const user = await prisma.user.update({
+    where: { id: req.user!.id },
+    data:  { name: trimmed },
+    select: { id: true, email: true, name: true, role: true, permissions: true },
+  });
+  res.json(user);
+});
+
+// ── Change password ───────────────────────────────────────────────────────────
+
+router.post("/change-password", authenticate, async (req: AuthRequest, res) => {
+  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+  if (!currentPassword || !newPassword) { res.status(400).json({ error: "Current and new password are required" }); return; }
+  if (newPassword.length < 8) { res.status(400).json({ error: "New password must be at least 8 characters" }); return; }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) { res.status(401).json({ error: "Current password is incorrect" }); return; }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+  res.json({ message: "Password updated successfully" });
 });
 
 export default router;

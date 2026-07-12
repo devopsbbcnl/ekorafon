@@ -22,6 +22,9 @@ const ALL_PERMISSIONS = [
   { key: "users",        label: "User Management" },
   { key: "factories",    label: "Factory Management" },
   { key: "verification", label: "Verification Queue" },
+  { key: "orders",       label: "Orders & Disputes" },
+  { key: "products",     label: "Products & RFQ Oversight" },
+  { key: "reviews",      label: "Review Moderation" },
   { key: "escrow",       label: "Escrow Management" },
   { key: "analytics",    label: "Analytics" },
 ];

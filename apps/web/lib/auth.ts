@@ -23,6 +23,12 @@ export function getToken(): string | null {
   return localStorage.getItem("eko_token");
 }
 
+export function updateStoredUser(patch: Partial<StoredUser>) {
+  const current = getUser();
+  if (!current) return;
+  localStorage.setItem("eko_user", JSON.stringify({ ...current, ...patch }));
+}
+
 export function logout() {
   localStorage.removeItem("eko_token");
   localStorage.removeItem("eko_user");

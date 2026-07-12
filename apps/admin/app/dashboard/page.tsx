@@ -12,10 +12,12 @@ const OverviewTab     = dynamic(() => import("@/components/OverviewTab"),     { 
 const UsersTab        = dynamic(() => import("@/components/UsersTab"),        { ssr: false });
 const FactoriesTab    = dynamic(() => import("@/components/FactoriesTab"),    { ssr: false });
 const VerificationTab = dynamic(() => import("@/components/VerificationTab"), { ssr: false });
+const OrdersTab       = dynamic(() => import("@/components/OrdersTab"),       { ssr: false });
+const ProductsTab     = dynamic(() => import("@/components/ProductsTab"),     { ssr: false });
+const ReviewsTab      = dynamic(() => import("@/components/ReviewsTab"),      { ssr: false });
 const EscrowTab       = dynamic(() => import("@/components/EscrowTab"),       { ssr: false });
-const AnalyticsTab    = dynamic(() => import("@/components/AnalyticsTab"),    { ssr: false });
 
-type Tab = "overview" | "users" | "factories" | "verification" | "escrow" | "analytics";
+type Tab = "overview" | "users" | "factories" | "verification" | "orders" | "products" | "reviews" | "escrow";
 
 interface TabDef {
   id: Tab;
@@ -51,12 +53,20 @@ const TAB_DEFS: TabDef[] = [
     icon: <Icon d="M9 12L11 14L15 10M20.6 8.8A9 9 0 1 1 8.8 3.4" />,
   },
   {
-    id: "escrow", label: "Escrow", permission: "escrow",
-    icon: <Icon d="M12 22C12 22 3 18 3 11V5L12 2L21 5V11C21 18 12 22 12 22Z" />,
+    id: "orders", label: "Orders", permission: "orders",
+    icon: <Icon d="M6 2L3 6V20A2 2 0 0 0 5 22H19A2 2 0 0 0 21 20V6L18 2H6ZM3 6H21M16 10A4 4 0 0 1 8 10" />,
   },
   {
-    id: "analytics", label: "Analytics", permission: "analytics",
-    icon: <Icon d="M18 20V10M12 20V4M6 20V14" />,
+    id: "products", label: "Products & RFQs", permission: "products",
+    icon: <Icon d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" />,
+  },
+  {
+    id: "reviews", label: "Reviews", permission: "reviews",
+    icon: <Icon d="M12 17.3L18.2 21L16.5 13.9L22 9.2L14.7 8.6L12 2L9.3 8.6L2 9.2L7.5 13.9L5.8 21Z" />,
+  },
+  {
+    id: "escrow", label: "Escrow", permission: "escrow",
+    icon: <Icon d="M12 22C12 22 3 18 3 11V5L12 2L21 5V11C21 18 12 22 12 22Z" />,
   },
 ];
 
@@ -65,8 +75,10 @@ const SECTION_LABEL: Record<Tab, string> = {
   users:        "User Management",
   factories:    "Supplier Factories",
   verification: "Verification Queue",
+  orders:       "Orders & Disputes",
+  products:     "Products & RFQ Oversight",
+  reviews:      "Review Moderation",
   escrow:       "Escrow Management",
-  analytics:    "Analytics",
 };
 
 export default function DashboardPage() {
@@ -186,8 +198,10 @@ export default function DashboardPage() {
             {active === "users"        && <UsersTab currentUser={user} />}
             {active === "factories"    && <FactoriesTab />}
             {active === "verification" && <VerificationTab onCountChange={handleVerifCount} />}
+            {active === "orders"       && <OrdersTab />}
+            {active === "products"     && <ProductsTab />}
+            {active === "reviews"      && <ReviewsTab />}
             {active === "escrow"       && <EscrowTab />}
-            {active === "analytics"    && <AnalyticsTab />}
           </div>
         </main>
       </div>

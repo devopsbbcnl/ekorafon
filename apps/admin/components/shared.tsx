@@ -80,9 +80,9 @@ export function Th({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Td({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+export function Td({ children, style, onClick }: { children: React.ReactNode; style?: React.CSSProperties; onClick?: (e: React.MouseEvent<HTMLTableCellElement>) => void }) {
   return (
-    <td style={{ padding: "12px 16px", borderBottom: `1px solid ${BORDER}`, fontSize: "13px", verticalAlign: "middle", ...style }}>
+    <td onClick={onClick} style={{ padding: "12px 16px", borderBottom: `1px solid ${BORDER}`, fontSize: "13px", verticalAlign: "middle", ...style }}>
       {children}
     </td>
   );
@@ -108,7 +108,7 @@ export function Btn({
   children, onClick, disabled, variant = "primary", size = "md", style,
 }: {
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   variant?: "primary" | "danger" | "ghost" | "outline";
   size?: "sm" | "md";

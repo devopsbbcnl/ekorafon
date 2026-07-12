@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { Nav } from "@/components/nav";
+import { BuyerSidebar } from "@/components/buyer-sidebar";
+import { BuyerHeaderSlot } from "@/components/buyer-header-slot";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -994,14 +996,38 @@ function PaymentsTab({ orders }: { orders: Order[] }) {
 
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 
+const VALID_TABS: Tab[] = ["overview", "sourcing", "orders", "suppliers", "payments"];
+
 export default function BuyerDashboard() {
+  return (
+    <Suspense fallback={null}>
+      <BuyerDashboardInner />
+    </Suspense>
+  );
+}
+
+function BuyerDashboardInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   // useState initializer runs once — stable reference, won't trigger dep-array churn
   const [user] = useState(getUser);
   const [rfqs, setRFQs]     = useState<RFQ[]>([]);
   const [orders, setOrders]  = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const tabParam = searchParams.get("tab") as Tab | null;
+  const [activeTab, setActiveTabState] = useState<Tab>(
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : "overview"
+  );
+
+  function setActiveTab(tab: Tab) {
+    setActiveTabState(tab);
+    router.replace(tab === "overview" ? "/dashboard/buyer" : `/dashboard/buyer?tab=${tab}`, { scroll: false });
+  }
+
+  // Keep tab state in sync when the sidebar (a plain <Link>) navigates via a new ?tab= value
+  useEffect(() => {
+    setActiveTabState(tabParam && VALID_TABS.includes(tabParam) ? tabParam : "overview");
+  }, [tabParam]);
 
   useEffect(() => {
     if (!user || user.role !== "BUYER") { router.push("/auth/login"); return; }
@@ -1030,7 +1056,7 @@ export default function BuyerDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: C.bg }}>
-        <Nav variant="dashboard" />
+        <Nav variant="dashboard" minimal />
         <div className="flex items-center justify-center h-64">
           <div className="flex gap-1">
             {[0, 1, 2].map((i) => (
@@ -1048,119 +1074,101 @@ export default function BuyerDashboard() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.bg }}>
-      <Nav variant="dashboard" />
+      <Nav variant="dashboard" minimal headerSlot={<BuyerHeaderSlot name={user?.name} />} />
 
-      <div className="px-6 md:px-10 py-8">
+      <div className="flex items-start">
+        <BuyerSidebar active={activeTab} rfqCount={rfqs.length} activeOrderCount={activeOrders.length} headerOffset="112px" />
 
-        {/* ── Page header ── */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: C.ochre }}>
-              Buyer Command Center
-            </p>
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: C.text }}>
-              {user?.name ? `Welcome back, ${user.name.split(" ")[0]}` : "Buyer Dashboard"}
-            </h1>
-            <p className="text-sm mt-0.5" style={{ color: C.muted }}>
-              Sourcing · Orders · Payments · Suppliers — all in one place
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Link
-              href="/factories"
-              className="px-4 py-2.5 text-xs font-bold rounded border transition-colors hover:bg-white"
-              style={{ borderColor: C.border, color: C.text, textDecoration: "none", backgroundColor: C.white }}
+        <div className="flex-1 min-w-0 px-6 md:px-10 py-8">
+
+          {/* ── Alert: quotes pending decision ── */}
+          {pendingReview > 0 && (
+            <div
+              className="mb-6 rounded-lg border px-5 py-3 flex items-center gap-3"
+              style={{ borderColor: "#FCD34D", backgroundColor: "#FFFBEB" }}
             >
-              Browse Suppliers
-            </Link>
-            <Link
-              href="/dashboard/buyer/rfq/new"
-              className="px-5 py-2.5 text-xs font-bold rounded hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: C.ochre, color: "white", textDecoration: "none" }}
-            >
-              + Post RFQ
-            </Link>
-          </div>
-        </div>
-
-        {/* ── Alert: quotes pending decision ── */}
-        {pendingReview > 0 && (
-          <div
-            className="mb-6 rounded-lg border px-5 py-3 flex items-center gap-3"
-            style={{ borderColor: "#FCD34D", backgroundColor: "#FFFBEB" }}
-          >
-            <span style={{ fontSize: "16px" }}>⚡</span>
-            <p className="text-sm" style={{ color: "#92400E" }}>
-              <strong>
-                {pendingReview} RFQ{pendingReview > 1 ? "s have" : " has"} quotes waiting
-              </strong>{" "}
-              — award a supplier to convert them into purchase orders.
-            </p>
-            <button
-              onClick={() => setActiveTab("sourcing")}
-              className="ml-auto text-xs font-bold px-3 py-1.5 rounded shrink-0"
-              style={{ backgroundColor: C.ochre, color: "white", border: "none", cursor: "pointer" }}
-            >
-              Review Now
-            </button>
-          </div>
-        )}
-
-        {/* ── KPI cards ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-          <StatCard icon="📋" label="Total RFQs"   value={rfqs.length}          sub="sourcing requests"   accent={C.forest}  onClick={() => setActiveTab("sourcing")} />
-          <StatCard icon="💬" label="Quotes In"    value={totalQuotes}          sub="across all RFQs"    accent={C.ochre}   onClick={() => setActiveTab("sourcing")} />
-          <StatCard icon="🟢" label="Open RFQs"    value={openRFQs}             sub="accepting quotes"   accent={C.green}   />
-          <StatCard icon="📦" label="Orders"       value={orders.length}        sub={`${activeOrders.length} active`} accent={C.terra}   onClick={() => setActiveTab("orders")} />
-          <StatCard icon="🔔" label="Need Review"  value={pendingReview}        sub="quotes to evaluate" accent={C.purple}  onClick={() => setActiveTab("sourcing")} />
-          <StatCard icon="💳" label="Total Spend"  value={fmt(totalSpend)}      sub="all time"           accent={C.cyan}    onClick={() => setActiveTab("payments")} />
-        </div>
-
-        {/* ── Tab bar ── */}
-        <div
-          className="flex gap-0 mb-6 overflow-x-auto"
-          style={{ borderBottom: `2px solid ${C.border}` }}
-        >
-          {TABS.map((tab) => {
-            const active = activeTab === tab.key;
-            return (
+              <span style={{ fontSize: "16px" }}>⚡</span>
+              <p className="text-sm" style={{ color: "#92400E" }}>
+                <strong>
+                  {pendingReview} RFQ{pendingReview > 1 ? "s have" : " has"} quotes waiting
+                </strong>{" "}
+                — award a supplier to convert them into purchase orders.
+              </p>
               <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex items-center gap-1.5 px-5 py-3 text-sm font-bold transition-colors shrink-0 whitespace-nowrap"
-                style={{
-                  background: "none",
-                  border: "none",
-                  borderBottom: `2px solid ${active ? C.ochre : "transparent"}`,
-                  marginBottom: "-2px",
-                  color: active ? C.ochre : C.muted,
-                  cursor: "pointer",
-                }}
+                onClick={() => setActiveTab("sourcing")}
+                className="ml-auto text-xs font-bold px-3 py-1.5 rounded shrink-0"
+                style={{ backgroundColor: C.ochre, color: "white", border: "none", cursor: "pointer" }}
               >
-                {tab.label}
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span
-                    style={{
-                      backgroundColor: active ? C.ochre : C.border,
-                      color: active ? "white" : C.muted,
-                      fontSize: "10px", fontWeight: 700,
-                      padding: "1px 6px", borderRadius: "10px",
-                    }}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
+                Review Now
               </button>
-            );
-          })}
-        </div>
+            </div>
+          )}
 
-        {/* ── Tab content ── */}
-        {activeTab === "overview"  && <OverviewTab  rfqs={rfqs} orders={orders} onTabChange={setActiveTab} />}
-        {activeTab === "sourcing"  && <SourcingTab  rfqs={rfqs} router={router} />}
-        {activeTab === "orders"    && <OrdersTab    orders={orders} router={router} />}
-        {activeTab === "suppliers" && <SuppliersTab orders={orders} />}
-        {activeTab === "payments"  && <PaymentsTab  orders={orders} />}
+          {/* ── KPI cards — overview tab only ── */}
+          {activeTab === "overview" && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+              <StatCard icon="📋" label="Total RFQs"   value={rfqs.length}          sub="sourcing requests"   accent={C.forest}  onClick={() => setActiveTab("sourcing")} />
+              <StatCard icon="💬" label="Quotes In"    value={totalQuotes}          sub="across all RFQs"    accent={C.ochre}   onClick={() => setActiveTab("sourcing")} />
+              <StatCard icon="🟢" label="Open RFQs"    value={openRFQs}             sub="accepting quotes"   accent={C.green}   />
+              <StatCard icon="📦" label="Orders"       value={orders.length}        sub={`${activeOrders.length} active`} accent={C.terra}   onClick={() => setActiveTab("orders")} />
+              <StatCard icon="🔔" label="Need Review"  value={pendingReview}        sub="quotes to evaluate" accent={C.purple}  onClick={() => setActiveTab("sourcing")} />
+              <StatCard icon="💳" label="Total Spend"  value={fmt(totalSpend)}      sub="all time"           accent={C.cyan}    onClick={() => setActiveTab("payments")} />
+            </div>
+          )}
+
+          {/* ── Tab bar — mobile/tablet only; desktop uses the sidebar ── */}
+          <div
+            className="md:hidden flex gap-0 mb-6 overflow-x-auto"
+            style={{ borderBottom: `2px solid ${C.border}` }}
+          >
+            {TABS.map((tab) => {
+              const active = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="flex items-center gap-1.5 px-5 py-3 text-sm font-bold transition-colors shrink-0 whitespace-nowrap"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    borderBottom: `2px solid ${active ? C.ochre : "transparent"}`,
+                    marginBottom: "-2px",
+                    color: active ? C.ochre : C.muted,
+                    cursor: "pointer",
+                  }}
+                >
+                  {tab.label}
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span
+                      style={{
+                        backgroundColor: active ? C.ochre : C.border,
+                        color: active ? "white" : C.muted,
+                        fontSize: "10px", fontWeight: 700,
+                        padding: "1px 6px", borderRadius: "10px",
+                      }}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            <Link
+              href="/dashboard/buyer/settings"
+              className="flex items-center px-5 py-3 text-sm font-bold shrink-0 whitespace-nowrap"
+              style={{ color: C.muted, textDecoration: "none" }}
+            >
+              Settings
+            </Link>
+          </div>
+
+          {/* ── Tab content ── */}
+          {activeTab === "overview"  && <OverviewTab  rfqs={rfqs} orders={orders} onTabChange={setActiveTab} />}
+          {activeTab === "sourcing"  && <SourcingTab  rfqs={rfqs} router={router} />}
+          {activeTab === "orders"    && <OrdersTab    orders={orders} router={router} />}
+          {activeTab === "suppliers" && <SuppliersTab orders={orders} />}
+          {activeTab === "payments"  && <PaymentsTab  orders={orders} />}
+        </div>
       </div>
     </div>
   );

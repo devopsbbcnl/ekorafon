@@ -181,6 +181,109 @@ router.patch("/factories/:id/verification", authenticate, guard("factories"), h(
   res.json(factory);
 }));
 
+// ── Orders & Disputes ─────────────────────────────────────────────────────────
+
+router.get("/orders", authenticate, guard("orders"), h(async (_req, res) => {
+  const orders = await prisma.order.findMany({
+    include: {
+      buyer:    { select: { name: true, email: true } },
+      supplier: { select: { name: true, factory: { select: { businessName: true } } } },
+      items:    { include: { product: { select: { name: true } } } },
+      payment:  { select: { status: true, amount: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(orders);
+}));
+
+const ORDER_STATUSES = ["PENDING", "CONFIRMED", "IN_PRODUCTION", "SHIPPED", "DELIVERED", "CANCELLED", "DISPUTED"];
+
+// Admin override — used chiefly to resolve disputes by moving the order to its correct status
+router.patch("/orders/:id/status", authenticate, guard("orders"), h(async (req, res) => {
+  const { status } = req.body as { status: string };
+  if (!ORDER_STATUSES.includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
+
+  const order = await prisma.order.update({
+    where: { id: req.params.id },
+    data:  { status: status as never },
+    select: { id: true, status: true },
+  });
+  res.json(order);
+}));
+
+// ── Products, RFQs & Quotes ───────────────────────────────────────────────────
+
+router.get("/products", authenticate, guard("products"), h(async (_req, res) => {
+  const products = await prisma.product.findMany({
+    include: {
+      supplier: { select: { name: true, email: true } },
+      factory:  { select: { businessName: true, verificationLevel: true } },
+      _count:   { select: { orderItems: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(products);
+}));
+
+// Admin moderation — delist/relist a product
+router.patch("/products/:id/stock", authenticate, guard("products"), h(async (req, res) => {
+  const { inStock } = req.body as { inStock: boolean };
+  const product = await prisma.product.update({
+    where: { id: req.params.id },
+    data:  { inStock },
+    select: { id: true, inStock: true },
+  });
+  res.json(product);
+}));
+
+// Admin moderation — remove a listing entirely
+router.delete("/products/:id", authenticate, guard("products"), h(async (req, res) => {
+  await prisma.product.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+}));
+
+router.get("/rfqs", authenticate, guard("products"), h(async (_req, res) => {
+  const rfqs = await prisma.rFQ.findMany({
+    include: {
+      buyer:  { select: { name: true, email: true } },
+      _count: { select: { quotes: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(rfqs);
+}));
+
+router.get("/quotes", authenticate, guard("products"), h(async (_req, res) => {
+  const quotes = await prisma.quote.findMany({
+    include: {
+      rfq:      { select: { id: true, title: true, status: true } },
+      supplier: { select: { name: true, factory: { select: { businessName: true } } } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(quotes);
+}));
+
+// ── Reviews ───────────────────────────────────────────────────────────────────
+
+router.get("/reviews", authenticate, guard("reviews"), h(async (_req, res) => {
+  const reviews = await prisma.review.findMany({
+    include: {
+      buyer:    { select: { name: true, email: true } },
+      supplier: { select: { name: true, factory: { select: { businessName: true } } } },
+      order:    { select: { id: true, totalAmount: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(reviews);
+}));
+
+// Admin moderation — remove an inappropriate/fraudulent review
+router.delete("/reviews/:id", authenticate, guard("reviews"), h(async (req, res) => {
+  await prisma.review.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+}));
+
 // ── Escrow ────────────────────────────────────────────────────────────────────
 
 router.get("/escrow", authenticate, guard("escrow"), h(async (_req, res) => {
