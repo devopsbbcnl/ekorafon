@@ -522,7 +522,7 @@ function QuotesTab({ quotes }: { quotes: Quote[] }) {
         {filtered.length === 0 ? (
           <EmptyState icon="💬" title="No quotes here" body="Browse open RFQs and submit quotes to win manufacturing contracts." cta="Browse RFQ Board" ctaHref="/rfq" />
         ) : (
-          <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+          <div className="overflow-x-auto"><table className="w-full text-sm" style={{ backgroundColor: C.white }}>
             <thead>
               <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
                 {["RFQ Title", "Category", "Your Price", "Lead Time", "RFQ Status", "Quote Status"].map((h) => (
@@ -554,7 +554,7 @@ function QuotesTab({ quotes }: { quotes: Quote[] }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
@@ -749,7 +749,7 @@ function ProductsTab({ factory, onRequestVerification }: { factory: FactoryProfi
         ) : products.length === 0 ? (
           <EmptyState icon="🛍️" title="No products listed" body="List your standard products so buyers can order directly without going through an RFQ." />
         ) : (
-          <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+          <div className="overflow-x-auto"><table className="w-full text-sm" style={{ backgroundColor: C.white }}>
             <thead>
               <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
                 {["Product", "Category", "Unit Price", "MOQ", "Lead Time", "Stock", ""].map((h) => (
@@ -785,7 +785,7 @@ function ProductsTab({ factory, onRequestVerification }: { factory: FactoryProfi
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 
@@ -1023,7 +1023,7 @@ function EarningsTab({ orders }: { orders: Order[] }) {
         {orders.filter((o) => o.status === "DELIVERED").length === 0 ? (
           <ComingSoon title="No earnings yet" body="Completed and paid orders will show here. Confirm orders and deliver on time to build your revenue track record." />
         ) : (
-          <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+          <div className="overflow-x-auto"><table className="w-full text-sm" style={{ backgroundColor: C.white }}>
             <thead>
               <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
                 {["Buyer", "Source", "Amount", "Date", "Status"].map((h) => (
@@ -1046,7 +1046,7 @@ function EarningsTab({ orders }: { orders: Order[] }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </SectionShell>
 
@@ -1282,7 +1282,7 @@ function VerificationTab({ factory }: { factory: FactoryProfile | null }) {
               <div className="flex gap-1">{[0, 1, 2].map((i) => <div key={i} className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: C.forest, animationDelay: `${i * 150}ms` }} />)}</div>
             </div>
           ) : (
-            <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+            <div className="overflow-x-auto"><table className="w-full text-sm" style={{ backgroundColor: C.white }}>
               <thead>
                 <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
                   {["Level Requested", "Submitted", "Status", "Admin Note"].map((h) => (
@@ -1306,7 +1306,7 @@ function VerificationTab({ factory }: { factory: FactoryProfile | null }) {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </SectionShell>
       )}

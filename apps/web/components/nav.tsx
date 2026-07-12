@@ -100,12 +100,13 @@ export function Nav({ active, variant = "default", breadcrumb, minimal = false, 
             <>
               {/* Search */}
               {!minimal && (
-                <form onSubmit={handleSearch} className="flex flex-1 max-w-2xl" style={{ border: `2px solid ${G}`, borderRadius: "4px" }}>
+                <form onSubmit={handleSearch} className="flex flex-1 max-w-2xl min-w-0" style={{ border: `2px solid ${G}`, borderRadius: "4px" }}>
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search manufacturers, products, categories..."
-                    style={{ flex: 1, padding: "0 14px", fontSize: "13px", outline: "none", border: "none", height: "40px", color: TEXT, backgroundColor: "white" }}
+                    placeholder="Search manufacturers, products..."
+                    className="min-w-0"
+                    style={{ flex: 1, padding: "0 14px", fontSize: "16px", outline: "none", border: "none", height: "40px", color: TEXT, backgroundColor: "white" }}
                   />
                   <button
                     type="submit"
@@ -120,6 +121,7 @@ export function Nav({ active, variant = "default", breadcrumb, minimal = false, 
               <div className="flex items-center gap-3 ml-auto shrink-0">
                 <Link
                   href="/dashboard/buyer/rfq/new"
+                  className="hidden md:inline-block"
                   style={{ border: `1px solid ${G}`, color: G, padding: "7px 14px", fontSize: "12px", fontWeight: 600, borderRadius: "4px", textDecoration: "none", whiteSpace: "nowrap" }}
                 >
                   + Post RFQ
@@ -146,7 +148,7 @@ export function Nav({ active, variant = "default", breadcrumb, minimal = false, 
       {/* Tier 3: Secondary nav — default variant */}
       {variant === "default" && (
         <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}` }}>
-          <div className="px-4 md:px-6 flex items-center" style={{ height: "40px" }}>
+          <div className="px-4 md:px-6 flex items-center overflow-x-auto" style={{ height: "40px" }}>
             {([
               ["All Manufacturers", "/factories", "factories"],
               ["Products", "/products", "products"],

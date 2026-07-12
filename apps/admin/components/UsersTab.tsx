@@ -59,7 +59,7 @@ function UserDetailModal({
       style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "flex-end", zIndex: 100 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ width: "460px", height: "100vh", backgroundColor: "white", display: "flex", flexDirection: "column", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", overflowY: "auto" }}>
+      <div style={{ width: "min(460px, 100vw)", height: "100dvh", backgroundColor: "white", display: "flex", flexDirection: "column", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", overflowY: "auto" }}>
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>

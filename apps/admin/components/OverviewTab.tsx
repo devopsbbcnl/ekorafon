@@ -63,13 +63,13 @@ function BarChart({ data, colors, valueFormatter }: { data: [string, number][]; 
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       {data.map(([label, value]) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "130px", fontSize: "11px", fontWeight: 600, color: MUTED, textAlign: "right", flexShrink: 0 }}>
+          <div className="chart-label" style={{ fontSize: "11px", fontWeight: 600, color: MUTED, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {label.replace(/_/g, " ")}
           </div>
           <div style={{ flex: 1, height: "18px", backgroundColor: "#F5F5F5", borderRadius: "4px", overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${(value / max) * 100}%`, backgroundColor: colors[label] ?? G, borderRadius: "4px", transition: "width 0.4s ease" }} />
           </div>
-          <div style={{ width: "80px", fontSize: "12px", fontWeight: 700, color: TEXT, flexShrink: 0, textAlign: "right" }}>
+          <div className="chart-value" style={{ fontSize: "12px", fontWeight: 700, color: TEXT, flexShrink: 0, textAlign: "right" }}>
             {valueFormatter ? valueFormatter(value) : value}
           </div>
         </div>
@@ -96,9 +96,9 @@ export default function OverviewTab() {
   const orderCountData = Object.entries(stats.ordersByStatus);
 
   return (
-    <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div className="tab-pad" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* KPI grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+      <div className="kpi-grid">
         <KPICard label="Total Users"       value={stats.totalUsers}                           sub={`${stats.usersByRole.BUYER ?? 0} buyers · ${stats.usersByRole.SUPPLIER ?? 0} suppliers`} />
         <KPICard label="Gross GMV"         value={fmt(stats.gmv)}                             sub="Delivered orders" />
         <KPICard label="Escrow Held"       value={fmt(stats.escrowValue)}                     sub="Awaiting release" accent="#6D28D9" />
@@ -117,7 +117,7 @@ export default function OverviewTab() {
 
       {analytics && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div className="two-col-grid">
             {/* Revenue by order status */}
             <div style={{ backgroundColor: "white", border: `1px solid ${BORDER}`, borderRadius: "4px", padding: "18px" }}>
               <SectionTitle>Revenue by Order Status</SectionTitle>
@@ -159,14 +159,14 @@ export default function OverviewTab() {
                       <div style={{ width: "20px", fontSize: "12px", fontWeight: 900, color: i === 0 ? G : MUTED, flexShrink: 0, textAlign: "center" }}>
                         {i + 1}
                       </div>
-                      <div style={{ width: "180px", flexShrink: 0 }}>
+                      <div className="supplier-name" style={{ flexShrink: 0, overflow: "hidden" }}>
                         <div style={{ fontSize: "12px", fontWeight: 600, color: TEXT }}>{s.name}</div>
                         <div style={{ fontSize: "11px", color: MUTED }}>{s.orders} orders</div>
                       </div>
                       <div style={{ flex: 1, height: "18px", backgroundColor: "#F5F5F5", borderRadius: "4px", overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${(s.revenue / maxRev) * 100}%`, backgroundColor: i === 0 ? G : GD, borderRadius: "4px", opacity: 1 - i * 0.12 }} />
                       </div>
-                      <div style={{ width: "100px", fontSize: "12px", fontWeight: 700, color: G, textAlign: "right", flexShrink: 0 }}>{fmt(s.revenue)}</div>
+                      <div className="chart-value" style={{ fontSize: "12px", fontWeight: 700, color: G, textAlign: "right", flexShrink: 0 }}>{fmt(s.revenue)}</div>
                     </div>
                   );
                 })}

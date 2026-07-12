@@ -13,3 +13,94 @@ body {
 }
 
 input, textarea, select, button { font-family: inherit; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.8); }
+}
+
+/* ── Responsive shell ─────────────────────────────────────────────────────────
+   Desktop: fixed 220px sidebar. Mobile (<768px): off-canvas drawer + scrim. */
+
+.admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.admin-menu-btn { display: none; }
+.admin-scrim    { display: none; }
+
+@media (max-width: 767px) {
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(260px, 80vw);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .admin-sidebar.open { transform: translateX(0); }
+
+  .admin-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .admin-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #333333;
+    flex-shrink: 0;
+  }
+
+  .admin-hide-mobile { display: none !important; }
+}
+
+/* ── Responsive content helpers ─────────────────────────────────────────────── */
+
+.tab-pad { padding: 20px; }
+
+.admin-main-card { margin: 16px; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.chart-label   { width: 130px; }
+.chart-value   { width: 80px; }
+.supplier-name { width: 180px; }
+
+@media (max-width: 1023px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .tab-pad         { padding: 12px; }
+  .admin-main-card { margin: 8px; }
+  .two-col-grid  { grid-template-columns: 1fr; }
+  .chart-label   { width: 84px; }
+  .chart-value   { width: 64px; }
+  .supplier-name { width: 110px; }
+}

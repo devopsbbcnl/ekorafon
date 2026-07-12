@@ -86,6 +86,7 @@ export default function DashboardPage() {
   const [user, setUser]             = useState<AdminUser | null>(null);
   const [active, setActive]         = useState<Tab>("overview");
   const [pendingVerif, setPending]  = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const u = getUser();
@@ -115,10 +116,13 @@ export default function DashboardPage() {
   const isSuperAdmin = (user.permissions ?? []).length === 0;
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: "system-ui,-apple-system,sans-serif", backgroundColor: "#F0F2F0" }}>
+    <div style={{ display: "flex", height: "100dvh", overflow: "hidden", fontFamily: "system-ui,-apple-system,sans-serif", backgroundColor: "#F0F2F0" }}>
+
+      {/* ── Mobile scrim ── */}
+      {sidebarOpen && <div className="admin-scrim" onClick={() => setSidebarOpen(false)} />}
 
       {/* ── Sidebar ── */}
-      <aside style={{ width: "220px", flexShrink: 0, backgroundColor: GD, display: "flex", flexDirection: "column", height: "100vh" }}>
+      <aside className={`admin-sidebar${sidebarOpen ? " open" : ""}`} style={{ backgroundColor: GD }}>
 
         {/* Logo area */}
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
@@ -137,7 +141,7 @@ export default function DashboardPage() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActive(tab.id)}
+                onClick={() => { setActive(tab.id); setSidebarOpen(false); }}
                 style={{
                   display: "flex", alignItems: "center", gap: "10px",
                   padding: "9px 12px", borderRadius: "6px", border: "none", cursor: "pointer", width: "100%", textAlign: "left",
@@ -184,16 +188,19 @@ export default function DashboardPage() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Top header strip */}
-        <header style={{ height: "52px", backgroundColor: "white", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", padding: "0 24px", gap: "12px", flexShrink: 0 }}>
-          <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: TEXT }}>{SECTION_LABEL[active]}</h1>
+        <header style={{ height: "52px", backgroundColor: "white", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", padding: "0 16px", gap: "8px", flexShrink: 0 }}>
+          <button className="admin-menu-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            <Icon d="M3 6H21M3 12H21M3 18H21" size={22} />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{SECTION_LABEL[active]}</h1>
           </div>
-          <div style={{ fontSize: "12px", color: LIGHT }}>{new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+          <div className="admin-hide-mobile" style={{ fontSize: "12px", color: LIGHT }}>{new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
         </header>
 
         {/* Scrollable content */}
         <main style={{ flex: 1, overflow: "auto", backgroundColor: "#F0F2F0" }}>
-          <div style={{ backgroundColor: "white", margin: "16px", borderRadius: "6px", border: `1px solid ${BORDER}`, overflow: "hidden", minHeight: "calc(100vh - 120px)" }}>
+          <div className="admin-main-card" style={{ backgroundColor: "white", borderRadius: "6px", border: `1px solid ${BORDER}`, overflow: "hidden", minHeight: "calc(100dvh - 120px)" }}>
             {active === "overview"     && <OverviewTab />}
             {active === "users"        && <UsersTab currentUser={user} />}
             {active === "factories"    && <FactoriesTab />}

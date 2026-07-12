@@ -514,7 +514,7 @@ function SourcingTab({
             ctaHref={filter === "ALL" ? "/dashboard/buyer/rfq/new" : undefined}
           />
         ) : (
-          <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+          <div className="overflow-x-auto"><table className="w-full text-sm" style={{ backgroundColor: C.white }}>
             <thead>
               <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
                 {["Request", "Category", "Budget Range", "Quotes", "Deadline", "Status", ""].map((h) => (
@@ -571,7 +571,7 @@ function SourcingTab({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
@@ -677,7 +677,7 @@ function OrdersTab({ orders, router }: { orders: Order[]; router: ReturnType<typ
             ctaHref="/factories"
           />
         ) : (
-          <table className="w-full text-sm" style={{ backgroundColor: C.white }}>
+          <div className="overflow-x-auto"><table className="w-full text-sm" style={{ backgroundColor: C.white }}>
             <thead>
               <tr style={{ backgroundColor: "#F8F8F8", borderBottom: `1px solid ${C.border}` }}>
                 {["Supplier", "Items", "Source", "Total", "Date", "Status", ""].map((h) => (
@@ -737,7 +737,7 @@ function OrdersTab({ orders, router }: { orders: Order[]; router: ReturnType<typ
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </SectionShell>
 
