@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { prisma } from "../lib/prisma";
 import { signToken } from "../lib/jwt";
 import { RegisterSchema, LoginSchema } from "../shared";
@@ -23,7 +23,7 @@ const resendVerificationLimiter = rateLimit({
   limit: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => `${req.ip}:${(req.body as { email?: string })?.email || ""}`,
+  keyGenerator: (req) => `${ipKeyGenerator(req.ip ?? "")}:${(req.body as { email?: string })?.email || ""}`,
   message: { message: "Too many requests. Please try again later." },
 });
 
