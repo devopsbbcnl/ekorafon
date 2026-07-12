@@ -146,13 +146,14 @@ export default function HomeClient({ seoContent }: { seoContent?: React.ReactNod
               <Image src="/logo.png" alt="Ekorafon — African B2B trade platform" width={44} height={44} style={{ objectFit: "contain" }} priority />
             </Link>
 
-            <form onSubmit={handleSearch} className="flex flex-1 max-w-2xl" style={{ border: `2px solid ${G}`, borderRadius: "4px" }} role="search">
+            <form onSubmit={handleSearch} className="flex flex-1 max-w-2xl min-w-0" style={{ border: `2px solid ${G}`, borderRadius: "4px" }} role="search">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search manufacturers, products, categories..."
+                placeholder="Search manufacturers, products..."
                 aria-label="Search manufacturers, products and categories"
-                style={{ flex: 1, padding: "0 14px", fontSize: "13px", outline: "none", border: "none", height: "40px", color: TEXT, backgroundColor: "white" }}
+                className="min-w-0"
+                style={{ flex: 1, padding: "0 14px", fontSize: "16px", outline: "none", border: "none", height: "40px", color: TEXT, backgroundColor: "white" }}
               />
               <button
                 type="submit"
@@ -165,6 +166,7 @@ export default function HomeClient({ seoContent }: { seoContent?: React.ReactNod
             <div className="flex items-center gap-3 ml-auto shrink-0">
               <Link
                 href="/dashboard/buyer/rfq/new"
+                className="hidden md:inline-block"
                 style={{ border: `1px solid ${G}`, color: G, padding: "7px 14px", fontSize: "12px", fontWeight: 600, borderRadius: "4px", textDecoration: "none", whiteSpace: "nowrap" }}
               >
                 + Post RFQ
@@ -250,21 +252,21 @@ export default function HomeClient({ seoContent }: { seoContent?: React.ReactNod
               Find export-ready Nigerian factories for footwear, garments, leather goods and more.
               Post a free request for quotation and get direct wholesale quotes &mdash; no middlemen, no agents.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Link
                 href="/auth/register?role=buyer"
-                style={{ backgroundColor: "white", color: G, padding: "10px 22px", fontSize: "13px", fontWeight: 700, borderRadius: "4px", textDecoration: "none" }}
+                style={{ backgroundColor: "white", color: G, padding: "10px 22px", fontSize: "13px", fontWeight: 700, borderRadius: "4px", textDecoration: "none", whiteSpace: "nowrap" }}
               >
                 Post a Free RFQ
               </Link>
               <Link
                 href="/factories"
-                style={{ border: "1px solid rgba(255,255,255,0.35)", color: "white", padding: "10px 22px", fontSize: "13px", fontWeight: 600, borderRadius: "4px", textDecoration: "none" }}
+                style={{ border: "1px solid rgba(255,255,255,0.35)", color: "white", padding: "10px 22px", fontSize: "13px", fontWeight: 600, borderRadius: "4px", textDecoration: "none", whiteSpace: "nowrap" }}
               >
                 Browse Factories
               </Link>
             </div>
-            <div className="flex gap-8" style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+            <div className="flex gap-6 md:gap-8" style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
               {[
                 { v: loading ? "—" : String(factories.length), l: "Manufacturers" },
                 { v: loading ? "—" : String(rfqs.length), l: "Open RFQs" },
