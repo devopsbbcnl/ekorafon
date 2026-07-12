@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, optionalAuth, requireRole, type AuthRequest } from "../middleware/auth";
-import { RFQSchema } from "@ekorafon/shared";
+import { RFQSchema } from "../shared";
 import { emailQuoteAwarded, emailNewRFQPosted } from "../lib/email";
 
 const router = Router();

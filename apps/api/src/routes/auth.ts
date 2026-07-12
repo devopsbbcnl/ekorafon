@@ -4,7 +4,7 @@ import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { prisma } from "../lib/prisma";
 import { signToken } from "../lib/jwt";
-import { RegisterSchema, LoginSchema } from "@ekorafon/shared";
+import { RegisterSchema, LoginSchema } from "../shared";
 import { authenticate, type AuthRequest } from "../middleware/auth";
 import {
   emailVerifyAddress,

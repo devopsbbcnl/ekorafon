@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import type { AuthUser } from "@ekorafon/shared";
+import type { AuthUser } from "../shared";
 
 const SECRET = process.env.JWT_SECRET!;
 

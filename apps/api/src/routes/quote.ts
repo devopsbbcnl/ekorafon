@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, requireRole, type AuthRequest } from "../middleware/auth";
 import { requireVerifiedFactory } from "../middleware/verifiedFactory";
-import { QuoteSchema } from "@ekorafon/shared";
+import { QuoteSchema } from "../shared";
 import { emailQuoteReceived } from "../lib/email";
 
 const router = Router();

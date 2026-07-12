@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, requireRole, type AuthRequest } from "../middleware/auth";
-import { OrderSchema } from "@ekorafon/shared";
+import { OrderSchema } from "../shared";
 import {
   emailOrderPlaced,
   emailOrderConfirmed,

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../lib/jwt";
-import type { AuthUser, UserRole } from "@ekorafon/shared";
+import type { AuthUser, UserRole } from "../shared";
 
 export interface AuthRequest extends Request {
   user?: AuthUser;
