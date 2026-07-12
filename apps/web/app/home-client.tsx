@@ -281,7 +281,7 @@ export default function HomeClient({ seoContent }: { seoContent?: React.ReactNod
           </div>
 
           {/* Right: 3 quick-action cards */}
-          <div style={{ width: "248px", display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0, paddingTop: "16px" }} className="hidden md:flex">
+          <div style={{ width: "248px", flexDirection: "column", gap: "8px", flexShrink: 0, paddingTop: "16px" }} className="hidden md:flex">
             {[
               { title: "Request for Quotation", desc: "Tell suppliers exactly what you need", href: "/auth/register?role=buyer" },
               { title: "Browse Manufacturers", desc: "Explore verified Aba factories", href: "/factories" },
