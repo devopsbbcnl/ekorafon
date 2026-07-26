@@ -68,15 +68,17 @@ const MUTED = "#666666";
 const LIGHT = "#999999";
 
 export default function HomeClient({ seoContent }: { seoContent?: React.ReactNode }) {
-  const user = getUser();
+  // Start null so server and client initial renders match, then populate on mount
+  const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
   const [factories, setFactories] = useState<Factory[]>([]);
   const [rfqs, setRFQs] = useState<RFQ[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [loading, setLoading] = useState(true);
 
-  /* read ?q= from URL on mount so Nav search redirects work */
+  /* populate auth + read ?q= from URL on mount (keeps SSR/client hydration in sync) */
   useEffect(() => {
+    setUser(getUser());
     const q = new URLSearchParams(window.location.search).get("q");
     if (q) setSearch(q);
   }, []);
@@ -143,7 +145,7 @@ export default function HomeClient({ seoContent }: { seoContent?: React.ReactNod
         <div style={{ backgroundColor: "white", borderBottom: `1px solid ${BORDER}`, height: "64px" }}>
           <div className="px-4 md:px-6 h-full flex items-center gap-4">
             <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", flexShrink: 0, marginRight: "8px" }}>
-              <Image src="/logo.png" alt="Ekorafon — African B2B trade platform" width={44} height={44} style={{ objectFit: "contain" }} priority />
+              <Image src="/logo.png" alt="Ekorafon — African B2B trade platform" width={44} height={44} style={{ width: "44px", height: "44px", objectFit: "contain" }} priority />
             </Link>
 
             <form onSubmit={handleSearch} className="flex flex-1 max-w-2xl min-w-0" style={{ border: `2px solid ${G}`, borderRadius: "4px" }} role="search">

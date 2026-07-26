@@ -84,7 +84,7 @@ export function Nav({ active, variant = "default", breadcrumb, minimal = false, 
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0 mr-2">
             <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-              <Image src="/logo.png" alt="Ekorafon" width={44} height={44} style={{ objectFit: "contain" }} priority />
+              <Image src="/logo.png" alt="Ekorafon" width={44} height={44} style={{ width: "44px", height: "44px", objectFit: "contain" }} priority />
             </Link>
             {breadcrumb && !headerSlot && (
               <>

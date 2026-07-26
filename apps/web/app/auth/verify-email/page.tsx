@@ -38,7 +38,7 @@ function VerifyContent() {
     <div style={{ minHeight: "100vh", backgroundColor: "#F5F5F5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div style={{ width: "100%", maxWidth: "420px" }}>
         <div style={{ textAlign: "center", marginBottom: "28px" }}>
-          <Link href="/"><Image src="/logo.png" alt="Ekorafon" width={52} height={52} style={{ objectFit: "contain" }} /></Link>
+          <Link href="/"><Image src="/logo.png" alt="Ekorafon" width={52} height={52} style={{ width: "52px", height: "52px", objectFit: "contain" }} /></Link>
         </div>
 
         <div style={{ backgroundColor: "white", border: "1px solid #E8E8E8", borderRadius: "8px", padding: "36px 32px", textAlign: "center" }}>

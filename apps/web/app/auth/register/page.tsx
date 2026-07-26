@@ -46,7 +46,7 @@ function RegisterForm() {
       <header style={{ backgroundColor: "white", borderBottom: "1px solid #E8E8E8" }}>
         <div className="px-6 flex items-center justify-between" style={{ height: "64px" }}>
           <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-            <Image src="/logo.png" alt="Ekorafon" width={44} height={44} style={{ objectFit: "contain" }} priority />
+            <Image src="/logo.png" alt="Ekorafon" width={44} height={44} style={{ width: "44px", height: "44px", objectFit: "contain" }} priority />
           </Link>
           <p style={{ fontSize: "12px", color: "#666666" }}>
             Already have an account?{" "}
