@@ -20,7 +20,7 @@ export default function Footer() {
               WebkitBackdropFilter: "blur(12px)",
               boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)",
             }}>
-              <Image src="/logo3.png" alt="Ekorafon" width={200} height={100} style={{ objectFit: "contain" }} />
+              <Image src="/logo3.png" alt="Ekorafon" width={200} height={100} style={{ width: "200px", height: "100px", objectFit: "contain" }} />
             </div>
             <p style={{ fontSize: "13px", marginTop: "16px", lineHeight: 1.7, color: "rgba(255,255,255,0.4)", maxWidth: "300px" }}>
               Nigeria&rsquo;s B2B trade infrastructure platform for African manufacturers &mdash; built for global scale, starting from Aba, Abia State.

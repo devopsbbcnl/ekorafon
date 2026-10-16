@@ -11,6 +11,7 @@ import paymentRoutes from "./routes/payment";
 import reviewRoutes from "./routes/review";
 import verificationRoutes from "./routes/verification";
 import adminRoutes from "./routes/admin";
+import { prisma } from "./lib/prisma";
 
 dotenv.config();
 
@@ -59,6 +60,17 @@ app.use("/api/verification", verificationRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// Touches the database; used by the keepalive workflow. Kept separate from
+// /api/health so a database blip doesn't fail the host's health check and restart the API.
+app.get("/api/health/db", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ ok: true, db: true });
+  } catch {
+    res.status(503).json({ ok: false, db: false });
+  }
+});
 
 // Global error handler — returns JSON so the browser always gets a response
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

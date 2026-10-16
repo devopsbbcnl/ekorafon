@@ -13,6 +13,14 @@ import {
 
 const router = Router();
 
+// Suppliers drive an order up to SHIPPED (or cancel it before shipping).
+// DELIVERED and DISPUTED are buyer-only actions (see /:id/buyer-action).
+const SUPPLIER_TRANSITIONS: Record<string, string[]> = {
+  PENDING:       ["CONFIRMED", "CANCELLED"],
+  CONFIRMED:     ["IN_PRODUCTION", "CANCELLED"],
+  IN_PRODUCTION: ["SHIPPED", "CANCELLED"],
+};
+
 // Recompute ETRS score for a supplier based on all their completed orders
 async function recomputeETRS(supplierId: string) {
   const orders = await prisma.order.findMany({
@@ -167,8 +175,6 @@ router.post("/", authenticate, requireRole("BUYER"), h(async (req: AuthRequest, 
 // Supplier: update order status — sends emails on CONFIRMED and SHIPPED
 router.patch("/:id/status", authenticate, requireRole("SUPPLIER"), h(async (req: AuthRequest, res) => {
   const { status } = req.body as { status: string };
-  const allowed = ["CONFIRMED", "IN_PRODUCTION", "SHIPPED", "DELIVERED", "CANCELLED"];
-  if (!allowed.includes(status)) { res.status(400).json({ error: "Invalid status transition" }); return; }
 
   const order = await prisma.order.findUnique({
     where: { id: req.params.id },
@@ -178,6 +184,9 @@ router.patch("/:id/status", authenticate, requireRole("SUPPLIER"), h(async (req:
     },
   });
   if (!order || order.supplierId !== req.user!.id) { res.status(404).json({ error: "Order not found" }); return; }
+  if (!(SUPPLIER_TRANSITIONS[order.status] ?? []).includes(status)) {
+    res.status(400).json({ error: `Cannot move order from ${order.status} to ${status}` }); return;
+  }
 
   const updated = await prisma.order.update({
     where: { id: req.params.id },
