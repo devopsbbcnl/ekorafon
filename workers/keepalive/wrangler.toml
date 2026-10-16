@@ -1,0 +1,12 @@
+name = "ekorafon-keepalive"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# Scheduled-only worker: no public URL.
+workers_dev = false
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+KEEPALIVE_URL = "https://nelly.ekorafon.com/api/health/db"

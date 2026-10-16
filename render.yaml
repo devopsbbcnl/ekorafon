@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ekorafon-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start
+    healthCheckPath: /api/health
+    domains:
+      - nelly.ekorafon.com
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEB_URL
+        value: https://ekorafon.com
+      - key: ADMIN_URL
+        value: https://ngozi.ekorafon.com
+      - key: EMAIL_FROM
+        value: Ekorafon <noreply@ekorafon.com>
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false

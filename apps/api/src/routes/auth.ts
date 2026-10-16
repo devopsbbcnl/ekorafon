@@ -211,11 +211,13 @@ router.get("/me", async (req, res) => {
     const user = await prisma.user.findUnique({
       where:  { id: payload.id },
       select: {
-        id: true, email: true, name: true, role: true,
+        id: true, email: true, name: true, role: true, suspended: true,
         factory: { select: { id: true, businessName: true, verificationLevel: true } },
       },
     });
-    res.json(user);
+    if (!user || user.suspended) { res.status(401).json({ error: "Invalid token" }); return; }
+    const { suspended: _suspended, ...safe } = user;
+    res.json(safe);
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }

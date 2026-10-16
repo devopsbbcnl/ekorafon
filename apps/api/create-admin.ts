@@ -1,14 +1,23 @@
 /// <reference types="node" />
+// Usage: ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='...' npx tsx create-admin.ts
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 async function main() {
+  const email    = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD in the environment.");
+  }
+  if (password.length < 12) throw new Error("ADMIN_PASSWORD must be at least 12 characters.");
+
   const prisma = new PrismaClient();
-  const hash = await bcrypt.hash("3un%0u_dg!fa", 12);
+  const passwordHash = await bcrypt.hash(password, 12);
   await prisma.user.create({
-    data: { email: "user747-747@ekorafon.com", name: "Ekorafon Admin", passwordHash: hash, role: "ADMIN" },
+    data: { email, name: "Ekorafon Admin", passwordHash, role: "ADMIN", emailVerified: true },
   });
-  console.log("✓ admin user created — admin@ekorafon.com / Admin2026!");
+  console.log(`✓ admin user created — ${email}`);
   await prisma.$disconnect();
 }
 
